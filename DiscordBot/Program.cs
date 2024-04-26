@@ -27,8 +27,6 @@ namespace DiscordBot
 
                 await bot.StartAsync(serviceProvider);
 
-                Console.WriteLine("Connected to Discord");
-
                 do
                 {
                     var keyInfo = Console.ReadKey();

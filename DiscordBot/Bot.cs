@@ -39,6 +39,9 @@ namespace DiscordBot
             await _commands.AddModulesAsync(Assembly.GetExecutingAssembly(), _serviceProvider);
 
             await _client.LoginAsync(TokenType.Bot, discordToken);
+
+            _client.Ready += OnClientReady;
+
             await _client.StartAsync();
 
             _client.MessageReceived += HandleCommandAsync;
@@ -51,6 +54,12 @@ namespace DiscordBot
                 await _client.LogoutAsync();
                 await _client.StopAsync();
             }
+        }
+
+        private Task OnClientReady()
+        {
+            Console.WriteLine($"Hello supreme leader {_client.CurrentUser.Username} !" ?? "");
+            return Task.CompletedTask;
         }
 
         private async Task HandleCommandAsync(SocketMessage arg)
