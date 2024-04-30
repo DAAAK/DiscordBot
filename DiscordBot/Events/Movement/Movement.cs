@@ -31,7 +31,7 @@ public class Movement : IMovement
                 var embed = new EmbedBuilder()
                 .WithImageUrl(_configuration["JoiningImage"])
                 .WithColor(Color.Green)
-                .WithTitle("Welcome!")
+                .WithTitle("Welcome !")
                 .WithDescription($"Welcome {user.Mention} to the server !")
                 .Build();
 
@@ -56,8 +56,8 @@ public class Movement : IMovement
                 var embed = new EmbedBuilder()
                .WithImageUrl(_configuration["LeavingImage"])
                .WithColor(Color.Red)
-               .WithTitle("Goodbye!")
-               .WithDescription($"Goodbye {user.Mention}!")
+               .WithTitle("Bye !")
+               .WithDescription($"Goodbye {user.Mention} !")
                .Build();
 
                 await channel.SendMessageAsync(embed: embed);
