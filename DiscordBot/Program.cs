@@ -1,50 +1,48 @@
-﻿using System.Reflection;
-
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 
-namespace DiscordBot
+public class Program
 {
-    internal class Program
+    private static void Main(string[] args) =>
+        MainAsync(args).GetAwaiter().GetResult();
+
+    private static async Task MainAsync(string[] args)
     {
-        private static void Main(string[] args) =>
-            MainAsync(args).GetAwaiter().GetResult();
+        var configuration = new ConfigurationBuilder()
+            .AddUserSecrets(Assembly.GetExecutingAssembly())
+            .Build();
 
-        private static async Task MainAsync(string[] args)
+        var serviceProvider = new ServiceCollection()
+            .AddSingleton<IConfiguration>(configuration)
+            .AddScoped<IBot, Bot>()
+            .BuildServiceProvider();
+
+        try
         {
-            var configuration = new ConfigurationBuilder()
-                .AddUserSecrets(Assembly.GetExecutingAssembly())
-                .Build();
+            IBot bot = serviceProvider.GetRequiredService<IBot>();
 
-            var serviceProvider = new ServiceCollection()
-                .AddSingleton<IConfiguration>(configuration)
-                .AddScoped<IBot, Bot>()
-                .BuildServiceProvider();
+            await bot.StartAsync(serviceProvider);
 
-            try
+            Console.WriteLine("Connected to Discord");
+
+            do
             {
-                IBot bot = serviceProvider.GetRequiredService<IBot>();
+                var keyInfo = Console.ReadKey();
 
-                await bot.StartAsync(serviceProvider);
-
-                do
+                if (keyInfo.Key == ConsoleKey.Q)
                 {
-                    var keyInfo = Console.ReadKey();
+                    Console.WriteLine("\nShutting down!");
 
-                    if (keyInfo.Key == ConsoleKey.Q)
-                    {
-                        Console.WriteLine("\nShutting down!");
-
-                        await bot.StopAsync();
-                        return;
-                    }
-                } while (true);
-            }
-            catch (Exception exception)
-            {
-                Console.WriteLine(exception.Message);
-                Environment.Exit(-1);
-            }
+                    await bot.StopAsync();
+                    return;
+                }
+            } while (true);
+        }
+        catch (Exception exception)
+        {
+            Console.WriteLine(exception.Message);
+            Environment.Exit(-1);
         }
     }
 }
