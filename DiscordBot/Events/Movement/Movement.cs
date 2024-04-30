@@ -1,12 +1,17 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
+using Discord.WebSocket;
+using Microsoft.Extensions.Configuration;
 
 public class Movement : IMovement
 {
     private readonly DiscordSocketClient _client;
     private readonly ulong _channelId;
+    private readonly IConfiguration _configuration;
 
-    public Movement(DiscordSocketClient client, ulong channelId)
+
+    public Movement(DiscordSocketClient client, IConfiguration configuration, ulong channelId)
     {
+        _configuration = configuration;
         _client = client;
         _channelId = channelId;
 
@@ -23,9 +28,16 @@ public class Movement : IMovement
 
             if (channel != null)
             {
-                await channel.SendMessageAsync($"Welcome {user.Mention} to the server!");
+                var embed = new EmbedBuilder()
+                .WithImageUrl(_configuration["JoiningImage"])
+                .WithColor(Color.Green)
+                .WithTitle("Welcome!")
+                .WithDescription($"Welcome {user.Mention} to the server !")
+                .Build();
+
+                await channel.SendMessageAsync(embed: embed);
             }
-            Console.WriteLine($"User {user.Mention} joined the server");
+            Console.WriteLine($"User {user.Username} joined the server");
         }
         catch (Exception ex)
         {
@@ -35,16 +47,22 @@ public class Movement : IMovement
 
     public async Task HandleUserLeft(SocketGuild guild, SocketUser user)
     {
-       
         try
         {
             var channel = guild.GetTextChannel(_channelId);
 
             if (channel != null)
             {
-                await channel.SendMessageAsync($"Goodbye {user.Mention}! We'll miss you.");
+                var embed = new EmbedBuilder()
+               .WithImageUrl(_configuration["LeavingImage"])
+               .WithColor(Color.Red)
+               .WithTitle("Goodbye!")
+               .WithDescription($"Goodbye {user.Mention}!")
+               .Build();
+
+                await channel.SendMessageAsync(embed: embed);
             }
-            Console.WriteLine($"User {user.Mention} left the server");
+            Console.WriteLine($"User {user.Username} left the server");
         }
         catch (Exception ex)
         {

@@ -28,7 +28,7 @@ public class Bot : IBot
         _client.Ready += OnClientReady;
         _client.MessageReceived += HandleCommandAsync;
 
-        _ = new Movement(_client, ulong.Parse(_configuration["MovementChannel"]));
+        _ = new Movement(_client, _configuration, ulong.Parse(_configuration["MovementChannel"]));
     }
 
     public async Task StartAsync(ServiceProvider services)
