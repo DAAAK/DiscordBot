@@ -1,14 +1,16 @@
 ﻿using Discord;
 using Discord.Commands;
+using Discord.Net;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using System.Reflection;
 
 public class Bot : IBot
 {
     private ServiceProvider? _serviceProvider;
-
+    private ListRolesCommand _listRolesCommand;
     private readonly IConfiguration _configuration;
     private readonly DiscordSocketClient _client;
     private readonly CommandService _commands;
@@ -26,9 +28,12 @@ public class Bot : IBot
         _commands = new CommandService();
 
         _client.Ready += OnClientReady;
-        _client.MessageReceived += HandleCommandAsync;
+        _client.MessageReceived += CommandHandler;
+        _client.InteractionCreated += HandleInteractionAsync;
 
-        _ = new Movement(_client, _configuration, ulong.Parse(_configuration["MovementChannel"]));
+        _listRolesCommand = new ListRolesCommand(_client, _configuration);
+
+        _ = new Movement(_client, _configuration, ulong.Parse(_configuration["MovementChannelID"]));
     }
 
     public async Task StartAsync(ServiceProvider services)
@@ -53,13 +58,16 @@ public class Bot : IBot
         }
     }
 
-    private Task OnClientReady()
+    private async Task<Task> OnClientReady()
     {
         Console.WriteLine($"Hello from {_client.CurrentUser.Username} !" ?? "");
+
+       
+
         return Task.CompletedTask;
     }
 
-    private async Task HandleCommandAsync(SocketMessage arg)
+    private async Task CommandHandler(SocketMessage arg)
     {
         if (arg is not SocketUserMessage message || message.Author.IsBot)
         {
@@ -77,6 +85,21 @@ public class Bot : IBot
                 _serviceProvider);
 
             return;
+        }
+    }
+
+    private async Task HandleInteractionAsync(SocketInteraction interaction)
+    {
+        if (interaction is SocketSlashCommand slashCommand)
+        {
+            // Determine which command to execute based on command name
+            switch (slashCommand.Data.Name)
+            {
+                case "kkkkk":
+                    await _listRolesCommand.HandleCommand(slashCommand);
+                    break;
+                    // Add more cases for other commands...
+            }
         }
     }
 }
