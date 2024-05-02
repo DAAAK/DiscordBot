@@ -5,6 +5,6 @@ public interface ISlashCommands
 {
     string CommandName { get; }
 
-    Task RegisterCommandsAsync(DiscordSocketClient client, IConfiguration configuration);
+    Task RegisterCommandsAsync(DiscordSocketClient client);
     Task HandleCommand(SocketSlashCommand command);
 }

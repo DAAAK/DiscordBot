@@ -1,30 +1,29 @@
 ﻿using Discord;
+using Discord.Rest;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 
 public class Movement : IMovement
 {
     private readonly DiscordSocketClient _client;
-    private readonly ulong _channelId;
     private readonly IConfiguration _configuration;
 
 
-    public Movement(DiscordSocketClient client, IConfiguration configuration, ulong channelId)
+    public Movement(DiscordSocketClient client, IConfiguration configuration)
     {
         _configuration = configuration;
         _client = client;
-        _channelId = channelId;
 
         _client.UserJoined += HandleUserJoined;
         _client.UserLeft += HandleUserLeft;
-    }
+   }
 
     public async Task HandleUserJoined(SocketGuildUser user)
     {
         try
         {
             var guild = user.Guild;
-            var channel = guild.GetTextChannel(_channelId);
+            var channel = guild.GetTextChannel(ulong.Parse(_configuration["MovementChannelID"]));
 
             if (channel != null)
             {
@@ -49,7 +48,7 @@ public class Movement : IMovement
     {
         try
         {
-            var channel = guild.GetTextChannel(_channelId);
+            var channel = guild.GetTextChannel(ulong.Parse(_configuration["MovementChannelID"]));
 
             if (channel != null)
             {

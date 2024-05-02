@@ -3,6 +3,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Linq.Expressions;
 using System.Reflection;
 
 public class Bot : IBot
@@ -30,11 +31,13 @@ public class Bot : IBot
         _client.MessageReceived += PrefixCommandHandler;
         _client.SlashCommandExecuted += SlashCommandHandler;
 
-        _ = new Movement(_client, _configuration, ulong.Parse(_configuration["MovementChannelID"]));
+        _ = new Movement(_client, _configuration);
 
         _slashCommands = new List<ISlashCommands>
         {
-            new ListRolesCommandModule()
+            new ListRolesSlashCommand(_configuration),
+            new BanSlashCommand(_configuration),
+            new KickSlashCommand(_configuration),
             // Add more command modules here for each command
         };
     }
@@ -67,7 +70,7 @@ public class Bot : IBot
 
         foreach (var module in _slashCommands)
         {
-            await module.RegisterCommandsAsync(_client, _configuration);
+            await module.RegisterCommandsAsync(_client);
         }
 
         return Task.CompletedTask;
