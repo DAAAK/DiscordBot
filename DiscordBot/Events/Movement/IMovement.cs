@@ -1,5 +1,4 @@
 ﻿using Discord.WebSocket;
-using Microsoft.Extensions.DependencyInjection;
 
 public interface IMovement
 {

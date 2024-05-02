@@ -1,7 +1,10 @@
-﻿
-using Discord.WebSocket;
+﻿using Discord.WebSocket;
+using Microsoft.Extensions.Configuration;
 
 public interface ICommands
 {
-    public Task HandleCommand(SocketSlashCommand command);
+    string CommandName { get; }
+
+    Task RegisterCommandsAsync(DiscordSocketClient client, IConfiguration configuration);
+    Task HandleCommand(SocketSlashCommand command);
 }

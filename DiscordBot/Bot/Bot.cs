@@ -1,19 +1,18 @@
 ﻿using Discord;
 using Discord.Commands;
-using Discord.Net;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using System.Reflection;
 
 public class Bot : IBot
 {
     private ServiceProvider? _serviceProvider;
-    private ListRolesCommand _listRolesCommand;
     private readonly IConfiguration _configuration;
     private readonly DiscordSocketClient _client;
     private readonly CommandService _commands;
+    private readonly List<ICommands> _slashCommands;
+
 
     public Bot(IConfiguration configuration)
     {
@@ -29,11 +28,15 @@ public class Bot : IBot
 
         _client.Ready += OnClientReady;
         _client.MessageReceived += CommandHandler;
-        _client.InteractionCreated += HandleInteractionAsync;
-
-        _listRolesCommand = new ListRolesCommand(_client, _configuration);
+        _client.SlashCommandExecuted += SlashCommandHandler;
 
         _ = new Movement(_client, _configuration, ulong.Parse(_configuration["MovementChannelID"]));
+
+        _slashCommands = new List<ICommands>
+        {
+            new ListRolesCommandModule()
+            // Add more command modules here for each command
+        };
     }
 
     public async Task StartAsync(ServiceProvider services)
@@ -62,7 +65,10 @@ public class Bot : IBot
     {
         Console.WriteLine($"Hello from {_client.CurrentUser.Username} !" ?? "");
 
-       
+        foreach (var module in _slashCommands)
+        {
+            await module.RegisterCommandsAsync(_client, _configuration);
+        }
 
         return Task.CompletedTask;
     }
@@ -88,18 +94,15 @@ public class Bot : IBot
         }
     }
 
-    private async Task HandleInteractionAsync(SocketInteraction interaction)
+    private async Task SlashCommandHandler(SocketSlashCommand command)
     {
-        if (interaction is SocketSlashCommand slashCommand)
+        var module = _slashCommands.FirstOrDefault(m =>
+                string.Equals(m.CommandName, command.Data.Name, StringComparison.OrdinalIgnoreCase));
+
+        if (module != null)
         {
-            // Determine which command to execute based on command name
-            switch (slashCommand.Data.Name)
-            {
-                case "kkkkk":
-                    await _listRolesCommand.HandleCommand(slashCommand);
-                    break;
-                    // Add more cases for other commands...
-            }
+            await module.HandleCommand(command);
+
         }
     }
 }
