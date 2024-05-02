@@ -2,7 +2,7 @@
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 
-public class ListRolesCommandModule : ICommands
+public class ListRolesCommandModule : ISlashCommands
 {
     public string CommandName => "list-roles";
 
@@ -22,7 +22,7 @@ public class ListRolesCommandModule : ICommands
         var roleList = string.Join(",\n", guildUser.Roles.Where(x => !x.IsEveryone).Select(x => x.Mention));
 
         var embedBuilder = new EmbedBuilder()
-            .WithAuthor(guildUser.ToString(), guildUser.GetAvatarUrl() ?? guildUser.GetDefaultAvatarUrl())
+            .WithAuthor(guildUser.DisplayName.ToString(), guildUser.GetAvatarUrl() ?? guildUser.GetDefaultAvatarUrl())
             .WithTitle("Roles")
             .WithDescription(roleList)
             .WithColor(Color.Green)

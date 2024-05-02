@@ -10,8 +10,8 @@ public class Bot : IBot
     private ServiceProvider? _serviceProvider;
     private readonly IConfiguration _configuration;
     private readonly DiscordSocketClient _client;
-    private readonly CommandService _commands;
-    private readonly List<ICommands> _slashCommands;
+    private readonly CommandService _prefixCommands;
+    private readonly List<ISlashCommands> _slashCommands;
 
 
     public Bot(IConfiguration configuration)
@@ -24,15 +24,15 @@ public class Bot : IBot
         };
 
         _client = new DiscordSocketClient(config);
-        _commands = new CommandService();
+        _prefixCommands = new CommandService();
 
         _client.Ready += OnClientReady;
-        _client.MessageReceived += CommandHandler;
+        _client.MessageReceived += PrefixCommandHandler;
         _client.SlashCommandExecuted += SlashCommandHandler;
 
         _ = new Movement(_client, _configuration, ulong.Parse(_configuration["MovementChannelID"]));
 
-        _slashCommands = new List<ICommands>
+        _slashCommands = new List<ISlashCommands>
         {
             new ListRolesCommandModule()
             // Add more command modules here for each command
@@ -45,7 +45,7 @@ public class Bot : IBot
 
         _serviceProvider = services;
 
-        await _commands.AddModulesAsync(Assembly.GetExecutingAssembly(), _serviceProvider);
+        await _prefixCommands.AddModulesAsync(Assembly.GetExecutingAssembly(), _serviceProvider);
 
         await _client.LoginAsync(TokenType.Bot, discordToken);
 
@@ -73,7 +73,7 @@ public class Bot : IBot
         return Task.CompletedTask;
     }
 
-    private async Task CommandHandler(SocketMessage arg)
+    private async Task PrefixCommandHandler(SocketMessage arg)
     {
         if (arg is not SocketUserMessage message || message.Author.IsBot)
         {
@@ -85,7 +85,7 @@ public class Bot : IBot
 
         if (messageIsCommand)
         {
-            await _commands.ExecuteAsync(
+            await _prefixCommands.ExecuteAsync(
                 new SocketCommandContext(_client, message),
                 position,
                 _serviceProvider);

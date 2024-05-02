@@ -1,7 +1,7 @@
 ﻿using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 
-public interface ICommands
+public interface ISlashCommands
 {
     string CommandName { get; }
 
