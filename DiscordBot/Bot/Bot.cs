@@ -38,6 +38,7 @@ public class Bot : IBot
             new ListRolesSlashCommand(_configuration),
             new BanSlashCommand(_configuration),
             new KickSlashCommand(_configuration),
+            new PurgeSlashCommand(_configuration),
             // Add more command modules here for each command
         };
     }
@@ -104,7 +105,7 @@ public class Bot : IBot
 
         if (module != null)
         {
-            await module.HandleCommand(command);
+            await module.HandleCommand(command, _client);
 
         }
     }

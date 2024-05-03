@@ -24,7 +24,7 @@ public class BanSlashCommand : ISlashCommands
         await client.Rest.CreateGuildCommand(guildCommand.Build(), ulong.Parse(_configuration["GuildID"]));
     }
 
-    public async Task HandleCommand(SocketSlashCommand command)
+    public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
     {
         var executor = (SocketGuildUser)command.User;
 
