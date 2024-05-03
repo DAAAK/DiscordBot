@@ -1,5 +1,4 @@
 ﻿using Discord;
-using Discord.Rest;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 
@@ -16,7 +15,7 @@ public class Movement : IMovement
 
         _client.UserJoined += HandleUserJoined;
         _client.UserLeft += HandleUserLeft;
-   }
+    }
 
     public async Task HandleUserJoined(SocketGuildUser user)
     {

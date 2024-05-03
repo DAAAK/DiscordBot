@@ -9,12 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Commands\Slash\NewFolder\**" />
-    <EmbeddedResource Remove="Commands\Slash\NewFolder\**" />
-    <None Remove="Commands\Slash\NewFolder\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Remove="Commands\Commands.cs" />
   </ItemGroup>
 

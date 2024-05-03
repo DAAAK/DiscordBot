@@ -3,7 +3,6 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Linq.Expressions;
 using System.Reflection;
 
 public class Bot : IBot
@@ -39,6 +38,7 @@ public class Bot : IBot
             new BanSlashCommand(_configuration),
             new KickSlashCommand(_configuration),
             new PurgeSlashCommand(_configuration),
+            new HelpSlashCommand(_configuration),
             // Add more command modules here for each command
         };
     }

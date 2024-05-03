@@ -1,7 +1,6 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
-using System;
 
 public class PurgeSlashCommand : ISlashCommands
 {

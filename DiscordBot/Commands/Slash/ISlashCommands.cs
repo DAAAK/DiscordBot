@@ -1,5 +1,4 @@
 ﻿using Discord.WebSocket;
-using Microsoft.Extensions.Configuration;
 
 public interface ISlashCommands
 {
