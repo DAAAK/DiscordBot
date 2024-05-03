@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <Folder Include="Commands\Preifx\" />
+    <Folder Include="Commands\Slash\Moderation\NewFolder\" />
   </ItemGroup>
 
 </Project>
