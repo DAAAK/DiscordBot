@@ -52,11 +52,11 @@ public class Movement : IMovement
             if (channel != null)
             {
                 var embed = new EmbedBuilder()
-               .WithImageUrl(_configuration["LeavingImage"])
-               .WithColor(Color.Red)
-               .WithTitle("Bye !")
-               .WithDescription($"Goodbye {user.Mention} !")
-               .Build();
+                .WithImageUrl(_configuration["LeavingImage"])
+                .WithColor(Color.Red)
+                .WithTitle("Bye !")
+                .WithDescription($"Goodbye {user.Mention} !")
+                .Build();
 
                 await channel.SendMessageAsync(embed: embed);
             }
