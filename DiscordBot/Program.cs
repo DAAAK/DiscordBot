@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using DiscordBot.Database;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
@@ -16,11 +18,25 @@ public class Program
         var serviceProvider = new ServiceCollection()
             .AddSingleton<IConfiguration>(configuration)
             .AddScoped<IBot, Bot>()
+            .AddSingleton<DatabaseService>()
             .BuildServiceProvider();
+
+        var db = serviceProvider.GetRequiredService<DatabaseService>();
+        try
+        {
+            using var testConn = new SqlConnection(configuration.GetConnectionString("Default"));
+            await testConn.OpenAsync();
+            Console.WriteLine("Connected to SQL Server database.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Database connection failed: {ex.Message}");
+        }
 
         try
         {
             IBot bot = serviceProvider.GetRequiredService<IBot>();
+
 
             await bot.StartAsync(serviceProvider);
 

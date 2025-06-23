@@ -1,6 +1,8 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using DiscordBot.Commands.Slash.Webtoons;
+using DiscordBot.Database;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
@@ -48,6 +50,14 @@ public class Bot : IBot
         string discordToken = _configuration["DiscordToken"] ?? throw new Exception("Missing Discord token");
 
         _serviceProvider = services;
+
+        _slashCommands.AddRange(new ISlashCommands[]
+        {
+            new AddWebtoonSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new UpdateWebtoonSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new DeleteWebtoonSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new ListWebtoonsSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>())
+        });
 
         await _prefixCommands.AddModulesAsync(Assembly.GetExecutingAssembly(), _serviceProvider);
 
