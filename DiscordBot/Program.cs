@@ -1,4 +1,5 @@
 ﻿using Discord.WebSocket;
+using DiscordBot.Audio;
 using DiscordBot.Database;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -20,6 +21,7 @@ public class Program
             .AddSingleton<IConfiguration>(configuration)
             .AddScoped<IBot, Bot>()
             .AddSingleton<DiscordSocketClient>()
+            .AddSingleton<AudioService>()
             .AddSingleton<DatabaseService>()
             .BuildServiceProvider();
 

@@ -1,6 +1,8 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using DiscordBot.Audio;
+using DiscordBot.Commands.Slash.Music;
 using DiscordBot.Commands.Slash.NewFolder;
 using DiscordBot.Commands.Slash.NewFolder1;
 using DiscordBot.Commands.Slash.Webtoons;
@@ -24,7 +26,7 @@ public class Bot : IBot
 
         DiscordSocketConfig config = new()
         {
-            GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent | GatewayIntents.Guilds | GatewayIntents.GuildMembers | GatewayIntents.GuildMessages | GatewayIntents.GuildMessageReactions | GatewayIntents.GuildVoiceStates | GatewayIntents.DirectMessages | GatewayIntents.DirectMessageReactions | GatewayIntents.DirectMessageTyping,
+            GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent | GatewayIntents.Guilds | GatewayIntents.GuildMembers | GatewayIntents.GuildMessages | GatewayIntents.GuildMessageReactions | GatewayIntents.GuildVoiceStates | GatewayIntents.DirectMessages | GatewayIntents.DirectMessageReactions | GatewayIntents.DirectMessageTyping | GatewayIntents.GuildVoiceStates,
         };
 
         _client = new DiscordSocketClient(config);
@@ -82,7 +84,9 @@ public class Bot : IBot
 
             new ShowXpSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
             new ListXpSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
-            new UpdateXpSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>())
+            new UpdateXpSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+
+            new PlaySlashCommand(_configuration, _serviceProvider.GetRequiredService<AudioService>())
         });
 
         await _prefixCommands.AddModulesAsync(Assembly.GetExecutingAssembly(), _serviceProvider);
