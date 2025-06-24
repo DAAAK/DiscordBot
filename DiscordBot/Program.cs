@@ -1,4 +1,5 @@
-﻿using DiscordBot.Database;
+﻿using Discord.WebSocket;
+using DiscordBot.Database;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +19,7 @@ public class Program
         var serviceProvider = new ServiceCollection()
             .AddSingleton<IConfiguration>(configuration)
             .AddScoped<IBot, Bot>()
+            .AddSingleton<DiscordSocketClient>()
             .AddSingleton<DatabaseService>()
             .BuildServiceProvider();
 

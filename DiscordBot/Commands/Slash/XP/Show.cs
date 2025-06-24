@@ -1,0 +1,45 @@
+﻿using Discord;
+using Discord.WebSocket;
+using DiscordBot.Database;
+using Microsoft.Extensions.Configuration;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace DiscordBot.Commands.Slash.NewFolder1
+{
+    public class ShowXpSlashCommand : ISlashCommands
+    {
+        public string CommandName => "show-xp";
+        private readonly DatabaseService _db;
+        private readonly IConfiguration _configuration;
+
+        public ShowXpSlashCommand(IConfiguration configuration, DatabaseService db)
+        {
+            _configuration = configuration;
+            _db = db;
+        }
+
+
+        public async Task RegisterCommandsAsync(DiscordSocketClient client)
+        {
+            Console.WriteLine($"🔧 Registering command: {CommandName}");
+
+            var command = new SlashCommandBuilder()
+                .WithName(CommandName)
+                .WithDescription("Affiche ton XP.");
+            await client.Rest.CreateGuildCommand(command.Build(), ulong.Parse(_configuration["GuildID"]));
+            Console.WriteLine($"✅ Registered /{CommandName} in guild: {_configuration["GuildID"]}");
+
+        }
+
+        public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
+        {
+            var xp = await _db.GetUserXPAsync(command.User.Id);
+            await command.RespondAsync($"🧪 {command.User.Mention}, tu as **{xp} XP** !");
+        }
+    }
+
+}

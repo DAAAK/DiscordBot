@@ -43,14 +43,12 @@ namespace DiscordBot.Commands.Slash.Webtoons
                 .WithCurrentTimestamp();
 
             var emojiMap = new Dictionary<string, string>
-{
-    { "To Read", "🔴" },
-    { "On Going", "🟠" },
-    { "Up to Date", "🟡" },
-    { "Done", "🟢" }
-    };
-
-            int totalCount = 0;
+            {
+                { "To Read", "🔴" },
+                { "On Going", "🟠" },
+                { "Up to Date", "🟡" },
+                { "Done", "🟢" }
+            };
 
             foreach (var group in grouped)
             {
@@ -95,7 +93,6 @@ namespace DiscordBot.Commands.Slash.Webtoons
                 summaryLines.Add($"• {emoji} {kvp.Key}: {kvp.Value}");
             }
 
-            // Add empty line before timestamp
             summaryLines.Add("\u200B");
 
             embed.WithFooter(string.Join("\n", summaryLines));

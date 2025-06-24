@@ -1,6 +1,8 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using DiscordBot.Commands.Slash.NewFolder;
+using DiscordBot.Commands.Slash.NewFolder1;
 using DiscordBot.Commands.Slash.Webtoons;
 using DiscordBot.Database;
 using Microsoft.Extensions.Configuration;
@@ -30,7 +32,9 @@ public class Bot : IBot
 
         _client.Ready += OnClientReady;
         _client.MessageReceived += PrefixCommandHandler;
+        _client.UserJoined += OnUserJoined;
         _client.SlashCommandExecuted += SlashCommandHandler;
+        _client.AutocompleteExecuted += AutocompleteHandler;
 
         _ = new Movement(_client, _configuration);
 
@@ -41,22 +45,44 @@ public class Bot : IBot
             new KickSlashCommand(_configuration),
             new PurgeSlashCommand(_configuration),
             new HelpSlashCommand(_configuration),
-            // Add more command modules here for each command
         };
     }
 
     public async Task StartAsync(ServiceProvider services)
     {
-        string discordToken = _configuration["DiscordToken"] ?? throw new Exception("Missing Discord token");
-
         _serviceProvider = services;
 
-        _slashCommands.AddRange(new ISlashCommands[]
+        string discordToken = _configuration["DiscordToken"] ?? throw new Exception("Missing Discord token");
+        var client = _serviceProvider.GetRequiredService<DiscordSocketClient>();
+        var db = _serviceProvider.GetRequiredService<DatabaseService>();
+
+
+        _client.MessageReceived += async (message) =>
+        {
+            if (message.Author.IsBot || message.Channel is not SocketTextChannel textChannel) return;
+
+            var user = message.Author as SocketGuildUser;
+            if (user == null) return;
+
+            var db = _serviceProvider!.GetRequiredService<DatabaseService>();
+            await db.AddXPAsync(user.Id, user.DisplayName, xpToAdd: 5);
+        };
+
+        _slashCommands.AddRange(new List<ISlashCommands>
         {
             new AddWebtoonSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
             new UpdateWebtoonSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
             new DeleteWebtoonSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
-            new ListWebtoonsSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>())
+            new ListWebtoonsSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+
+            new AddGifSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new UpdateGifSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new DeleteGifSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new UseGifSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+
+            new ShowXpSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new ListXpSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new UpdateXpSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>())
         });
 
         await _prefixCommands.AddModulesAsync(Assembly.GetExecutingAssembly(), _serviceProvider);
@@ -77,7 +103,35 @@ public class Bot : IBot
 
     private async Task<Task> OnClientReady()
     {
-        Console.WriteLine($"Hello from {_client.CurrentUser.Username} !" ?? "");
+        Console.WriteLine($"👋 Hello from {_client.CurrentUser.Username}!");
+        Console.WriteLine("✅ OnClientReady triggered");
+
+        var db = _serviceProvider!.GetRequiredService<DatabaseService>();
+
+        string targetedGuild = _configuration["GuildID"] ?? throw new Exception("Missing Discord token");
+        ulong guildId = ulong.Parse(targetedGuild);
+        var guild = _client.GetGuild(guildId);
+
+        if (guild == null)
+        {
+            Console.WriteLine($"❌ Bot is not in guild with ID: {guildId}");
+            return Task.CompletedTask;
+        }
+
+        Console.WriteLine($"🔍 Processing guild: {guild.Name}");
+
+        await guild.DownloadUsersAsync();
+
+        Console.WriteLine($"👥 Found {guild.Users.Count} users in guild");
+
+        foreach (var user in guild.Users)
+        {
+            if (!user.IsBot)
+            {
+                Console.WriteLine($"👤 Registering user {user.Username} ({user.Id})");
+                await db.AddXPAsync(user.Id, user.DisplayName, 0);
+            }
+        }
 
         foreach (var module in _slashCommands)
         {
@@ -86,6 +140,18 @@ public class Bot : IBot
 
         return Task.CompletedTask;
     }
+
+    private async Task OnUserJoined(SocketGuildUser user)
+    {
+        if (user.IsBot) return;
+
+        var db = _serviceProvider!.GetRequiredService<DatabaseService>();
+
+        Console.WriteLine($"👋 New user joined: {user.Username} ({user.Id})");
+
+        await db.AddXPAsync(user.Id, user.Username, 0);
+    }
+
 
     private async Task PrefixCommandHandler(SocketMessage arg)
     {
@@ -117,6 +183,18 @@ public class Bot : IBot
         {
             await module.HandleCommand(command, _client);
 
+        }
+    }
+
+
+    private async Task AutocompleteHandler(SocketAutocompleteInteraction interaction)
+    {
+        var module = _slashCommands.FirstOrDefault(m =>
+            string.Equals(m.CommandName, interaction.Data.CommandName, StringComparison.OrdinalIgnoreCase));
+
+        if (module is UseGifSlashCommand gifModule)
+        {
+            await gifModule.HandleAutocomplete(interaction);
         }
     }
 }
