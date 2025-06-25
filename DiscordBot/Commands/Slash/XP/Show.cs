@@ -31,14 +31,24 @@ namespace DiscordBot.Commands.Slash.NewFolder1
                 .WithName(CommandName)
                 .WithDescription("Affiche ton XP.");
             await client.Rest.CreateGuildCommand(command.Build(), ulong.Parse(_configuration["GuildID"]));
-            Console.WriteLine($"✅ Registered /{CommandName} in guild: {_configuration["GuildID"]}");
 
         }
 
         public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
         {
-            var xp = await _db.GetUserXPAsync(command.User.Id);
-            await command.RespondAsync($"🧪 {command.User.Mention}, tu as **{xp} XP** !");
+            int xp = await _db.GetUserXPAsync(command.User.Id);
+            int level = await _db.GetUserLevelAsync(command.User.Id);
+            var (_, currentXP, nextLevelXP, xpRemaining) = _db.GetXPStats(xp, level);
+
+            var embed = new EmbedBuilder()
+                .WithTitle($"📊 Statistiques XP pour {command.User.Username}")
+                .WithColor(Color.DarkPurple)
+                .AddField("🔢 Niveau", level, true)
+                .AddField("💠 XP actuel", currentXP, true)
+                .AddField("🆙 XP restant", xpRemaining, true)
+                .Build();
+
+            await command.RespondAsync(embed: embed, ephemeral: true);
         }
     }
 

@@ -62,7 +62,7 @@ public class KickSlashCommand : ISlashCommands
                 .WithColor(Color.Red)
                 .WithCurrentTimestamp();
 
-            await command.RespondAsync(embed: embedBuilder.Build());
+            await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
         }
     }
     private bool HasRequiredRole(SocketGuildUser user)

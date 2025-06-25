@@ -117,9 +117,6 @@ public class PurgeSlashCommand : ISlashCommands
         }
     }
 
-
-
-
     private bool HasRequiredRole(SocketGuildUser user)
     {
         if (_configuration == null || !_configuration.GetSection("RequiredRolesIDS").Exists())

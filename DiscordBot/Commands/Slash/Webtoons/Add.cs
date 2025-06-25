@@ -38,13 +38,50 @@ namespace DiscordBot.Commands.Slash.Webtoons
 
         public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
         {
-            var name = command.Data.Options.First(o => o.Name == "name").Value.ToString();
-            var chapter = Convert.ToInt32(command.Data.Options.First(o => o.Name == "chapter").Value);
-            var status = command.Data.Options.First(o => o.Name == "status").Value.ToString();
+            var executor = (SocketGuildUser)command.User;
+
+            if (!HasRequiredRole(executor))
+            {
+                var embedBuilder = new EmbedBuilder()
+                    .WithTitle("Permission Refusée")
+                    .WithDescription("Vous n'avez pas la permission d'utiliser cette commande.")
+                    .WithColor(Color.Red)
+                    .WithCurrentTimestamp();
+
+                await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
+                return;
+            }
+
+            var nameOption = command.Data.Options.FirstOrDefault(o => o.Name == "name");
+            var chapterOption = command.Data.Options.FirstOrDefault(o => o.Name == "chapter");
+            var statusOption = command.Data.Options.FirstOrDefault(o => o.Name == "status");
+
+            if (nameOption?.Value == null || statusOption?.Value == null || chapterOption?.Value == null)
+            {
+                await command.RespondAsync("❌ Invalid input. Please ensure all required fields are provided.", ephemeral: true);
+                return;
+            }
+
+            var name = nameOption.Value.ToString();
+            var chapter = Convert.ToInt32(chapterOption.Value);
+            var status = statusOption.Value.ToString();
 
             await _db.AddWebtoonAsync(name, chapter, status);
 
-            await command.RespondAsync($"✅ Webtoon **{name}** added.");
+            await command.RespondAsync($"✅ Webtoon **{name}** added.", ephemeral: true);
+        }
+
+        private bool HasRequiredRole(SocketGuildUser user)
+        {
+            if (_configuration == null || !_configuration.GetSection("RequiredRolesIDS").Exists())
+                return false;
+
+            var requiredRoleIds = _configuration.GetSection("RequiredRolesIDS")
+                                                .GetChildren()
+                                                .Select(x => ulong.Parse(x.Value))
+                                                .ToArray();
+
+            return user.Roles.Any(role => requiredRoleIds.Contains(role.Id));
         }
     }
 

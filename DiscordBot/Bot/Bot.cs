@@ -47,6 +47,11 @@ public class Bot : IBot
             new KickSlashCommand(_configuration),
             new PurgeSlashCommand(_configuration),
             new HelpSlashCommand(_configuration),
+            new PollSlashCommand(_configuration),
+            new DiceSlashCommand(_configuration),
+            new CoinFlipSlashCommand(_configuration),
+            new RPSSlashCommand(_configuration),
+            new HangmanSlashCommand(_configuration),
         };
     }
 
@@ -63,12 +68,29 @@ public class Bot : IBot
         {
             if (message.Author.IsBot || message.Channel is not SocketTextChannel textChannel) return;
 
-            var user = message.Author as SocketGuildUser;
-            if (user == null) return;
+            if (message.Author is not SocketGuildUser user) return;
 
             var db = _serviceProvider!.GetRequiredService<DatabaseService>();
-            await db.AddXPAsync(user.Id, user.DisplayName, xpToAdd: 5);
+            var (leveledUp, newLevel, newXP) = await db.AddXPAsync(user.Id, user.DisplayName, xpToAdd: 5);
+
+            if (leveledUp)
+            {
+                var embed = new EmbedBuilder()
+                    .WithTitle("🎉 Level Up!")
+                    .WithDescription($"{user.Mention} has reached **Level {newLevel}**!")
+                    .WithColor(Color.Gold)
+                    .WithThumbnailUrl(user.GetAvatarUrl() ?? user.GetDefaultAvatarUrl())
+                    .WithFooter(footer => footer.Text = $"XP: {newXP}")
+                    .Build();
+
+                var channelId = ulong.Parse(_configuration["LevelChannelID"]);
+                var channel = _client.GetChannel(channelId) as IMessageChannel;
+
+                if (channel != null)
+                    await channel.SendMessageAsync(embed: embed);
+            }
         };
+
 
         _slashCommands.AddRange(new List<ISlashCommands>
         {
@@ -84,6 +106,7 @@ public class Bot : IBot
 
             new ShowXpSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
             new ListXpSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new AddXpSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
             new UpdateXpSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
 
             new PlaySlashCommand(_configuration, _serviceProvider.GetRequiredService<AudioService>())

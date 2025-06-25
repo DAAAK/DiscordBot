@@ -63,7 +63,7 @@ public class BanSlashCommand : ISlashCommands
                 .WithColor(Color.Red)
                 .WithCurrentTimestamp();
 
-            await command.RespondAsync(embed: embedBuilder.Build());
+            await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
         }
     }
 

@@ -41,7 +41,7 @@ namespace DiscordBot.Commands.Slash.NewFolder
 
             await _db.AddGifAsync(name, url);
 
-            await command.RespondAsync($"✅ GIF **{name}** added.");
+            await command.RespondAsync($"✅ GIF **{name}** added.", ephemeral: true);
         }
     }
 }

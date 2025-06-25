@@ -39,7 +39,7 @@ namespace DiscordBot.Commands.Slash.NewFolder
 
             await _db.DeleteGifAsync(name);
 
-            await command.RespondAsync($"🗑️ GIF **{name}** deleted.");
+            await command.RespondAsync($"🗑️ GIF **{name}** deleted.", ephemeral: true);
         }
     }
 }

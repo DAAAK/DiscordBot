@@ -12,7 +12,7 @@ namespace DiscordBot.Commands.Slash.NewFolder
 {
     public class UseGifSlashCommand : ISlashCommands
     {
-        public string CommandName => "use-gif";
+        public string CommandName => "gif";
 
         private readonly IConfiguration _configuration;
         private readonly DatabaseService _db;
@@ -47,7 +47,7 @@ namespace DiscordBot.Commands.Slash.NewFolder
 
             if (gif.Equals(default((string, string))))
             {
-                await command.RespondAsync($"❌ No GIF found with the name: **{name}**.");
+                await command.RespondAsync($"❌ No GIF found with the name: **{name}**.", ephemeral: true);
             }
             else
             {

@@ -40,7 +40,7 @@ namespace DiscordBot.Commands.Slash.NewFolder
             var url = command.Data.Options.First(o => o.Name == "newurl").Value.ToString();
 
             await _db.UpdateGifAsync(name, url);
-            await command.RespondAsync($"🔄 Updated **{name}** with new URL.");
+            await command.RespondAsync($"🔄 Updated **{name}** with new URL.", ephemeral: true);
         }
     }
 }

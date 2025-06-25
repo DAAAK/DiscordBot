@@ -33,12 +33,39 @@ namespace DiscordBot.Commands.Slash.NewFolder1
 
         public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
         {
+            var executor = (SocketGuildUser)command.User;
+
+            if (!HasRequiredRole(executor))
+            {
+                var embedBuilder = new EmbedBuilder()
+                    .WithTitle("Permission Refusée")
+                    .WithDescription("Vous n'avez pas la permission d'utiliser cette commande.")
+                    .WithColor(Color.Red)
+                    .WithCurrentTimestamp();
+
+                await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
+                return;
+            }
+
             var userOption = (SocketGuildUser)command.Data.Options.First(o => o.Name == "user").Value;
             var xpValue = (long)command.Data.Options.First(o => o.Name == "amount").Value;
 
             await _db.AddXPAsync(userOption.Id, userOption.DisplayName, (int)xpValue - await _db.GetUserXPAsync(userOption.Id));
 
-            await command.RespondAsync($"✅ Set {userOption.Mention}'s XP to {xpValue}.");
+            await command.RespondAsync($"✅ XP de {userOption.Mention} mis à jour à **{xpValue} XP**.", ephemeral: true);
+        }
+
+        private bool HasRequiredRole(SocketGuildUser user)
+        {
+            if (_configuration == null || !_configuration.GetSection("RequiredRolesIDS").Exists())
+                return false;
+
+            var requiredRoleIds = _configuration.GetSection("RequiredRolesIDS")
+                                                .GetChildren()
+                                                .Select(x => ulong.Parse(x.Value))
+                                                .ToArray();
+
+            return user.Roles.Any(role => requiredRoleIds.Contains(role.Id));
         }
     }
 }

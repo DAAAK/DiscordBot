@@ -126,47 +126,93 @@ namespace DiscordBot.Database
 
         }
 
-        public async Task AddXPAsync(ulong userId, string username, int xpToAdd = 1)
+        public async Task<(bool leveledUp, int newLevel, int newXP)> AddXPAsync(ulong userId, string username, int xpToAdd = 1)
         {
             try
             {
                 using var conn = new SqlConnection(_connectionString);
+
+                var checkCmd = new SqlCommand("SELECT XP, Level FROM UserXP WHERE UserId = @UserId", conn);
+                checkCmd.Parameters.AddWithValue("@UserId", unchecked((long)userId));
+
+                await conn.OpenAsync();
+                var reader = await checkCmd.ExecuteReaderAsync();
+
+                int currentXP = 0;
+                int currentLevel = 0;
+
+                if (await reader.ReadAsync())
+                {
+                    currentXP = reader.GetInt32(0);
+                    currentLevel = reader.GetInt32(1);
+                }
+
+                await reader.CloseAsync();
+
+                int newXP = currentXP + xpToAdd;
+                int newLevel = (int)Math.Floor(Math.Sqrt(newXP / 10.0));
+                bool leveledUp = newLevel > currentLevel;
+
                 var cmd = new SqlCommand(@"
             MERGE UserXP AS target
             USING (SELECT @UserId AS UserId) AS source
             ON target.UserId = source.UserId
             WHEN MATCHED THEN
-                UPDATE SET XP = XP + @XP, UserName = @UserName
+                UPDATE SET XP = @XP, UserName = @UserName, Level = @Level
             WHEN NOT MATCHED THEN
-                INSERT (UserId, UserName, XP) VALUES (@UserId, @UserName, @XP);", conn);
+                INSERT (UserId, UserName, XP, Level) VALUES (@UserId, @UserName, @XP, @Level);", conn);
 
                 cmd.Parameters.AddWithValue("@UserId", unchecked((long)userId));
                 cmd.Parameters.AddWithValue("@UserName", username);
-                cmd.Parameters.AddWithValue("@XP", xpToAdd);
+                cmd.Parameters.AddWithValue("@XP", newXP);
+                cmd.Parameters.AddWithValue("@Level", newLevel);
 
-                await conn.OpenAsync();
                 await cmd.ExecuteNonQueryAsync();
 
-                Console.WriteLine($"✅ Successfully added/updated XP for {username}");
+                return (leveledUp, newLevel, newXP);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"❌ DB error for {username}: {ex.Message}");
+                return (false, 0, 0);
             }
         }
 
-        public async Task<List<(ulong UserId, int XP)>> GetLeaderboardAsync()
+
+
+        public async Task<List<(ulong UserId, int Level, int XP)>> GetLeaderboardAsync()
         {
-            var list = new List<(ulong, int)>();
+            var list = new List<(ulong, int, int)>();
             using var conn = new SqlConnection(_connectionString);
-            var cmd = new SqlCommand("SELECT TOP 10 UserId, XP FROM UserXP ORDER BY XP DESC", conn);
+            var cmd = new SqlCommand("SELECT TOP 10 UserId, Level, XP FROM UserXP ORDER BY Level DESC, XP DESC", conn);
             await conn.OpenAsync();
             using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                list.Add(((ulong)(long)reader["UserId"], (int)reader["XP"]));
+                list.Add(((ulong)(long)reader["UserId"], (int)reader["Level"], (int)reader["XP"]));
             }
             return list;
+        }
+
+
+        public async Task<int> GetUserLevelAsync(ulong userId)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            var cmd = new SqlCommand("SELECT Level FROM UserXP WHERE UserId = @UserId", conn);
+            cmd.Parameters.Add("@UserId", System.Data.SqlDbType.BigInt).Value = unchecked((long)userId);
+
+            await conn.OpenAsync();
+            var result = await cmd.ExecuteScalarAsync();
+
+            return result != null ? Convert.ToInt32(result) : 0;
+        }
+
+        public (int Level, int CurrentXP, int XPForNext, int XPRemaining) GetXPStats(int xp, int level)
+        {
+            int nextLevelXP = (int)((level + 1) * (level + 1) * 10);
+            int xpRemaining = nextLevelXP - xp;
+
+            return (level, xp, nextLevelXP, xpRemaining);
         }
     }
 }

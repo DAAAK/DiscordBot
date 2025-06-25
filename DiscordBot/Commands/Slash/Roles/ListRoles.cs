@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 
 public class ListRolesSlashCommand : ISlashCommands
 {
-    public string CommandName => "list-roles";
+    public string CommandName => "roles";
 
     private readonly IConfiguration _configuration;
 

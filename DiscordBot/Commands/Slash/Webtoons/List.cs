@@ -12,7 +12,7 @@ namespace DiscordBot.Commands.Slash.Webtoons
 {
     public class ListWebtoonsSlashCommand : ISlashCommands
     {
-        public string CommandName => "list-webtoons";
+        public string CommandName => " webtoons";
 
         private readonly IConfiguration _configuration;
         private readonly DatabaseService _databaseService;
