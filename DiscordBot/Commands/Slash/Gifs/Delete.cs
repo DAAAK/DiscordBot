@@ -8,8 +8,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DiscordBot.Commands.Slash.NewFolder
-{
     public class DeleteGifSlashCommand : ISlashCommands
     {
         public string CommandName => "delete-gif";
@@ -42,4 +40,3 @@ namespace DiscordBot.Commands.Slash.NewFolder
             await command.RespondAsync($"🗑️ GIF **{name}** deleted.", ephemeral: true);
         }
     }
-}

@@ -8,8 +8,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DiscordBot.Commands.Slash.NewFolder
-{
     public class UpdateGifSlashCommand : ISlashCommands
     {
         public string CommandName => "update-gif";
@@ -43,4 +41,3 @@ namespace DiscordBot.Commands.Slash.NewFolder
             await command.RespondAsync($"🔄 Updated **{name}** with new URL.", ephemeral: true);
         }
     }
-}

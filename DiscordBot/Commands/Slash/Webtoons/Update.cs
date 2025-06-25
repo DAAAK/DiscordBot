@@ -8,8 +8,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DiscordBot.Commands.Slash.Webtoons
-{
     public class UpdateWebtoonSlashCommand : ISlashCommands
     {
         public string CommandName => "update-webtoon";
@@ -74,4 +72,3 @@ namespace DiscordBot.Commands.Slash.Webtoons
             return user.Roles.Any(role => requiredRoleIds.Contains(role.Id));
         }
     }
-}

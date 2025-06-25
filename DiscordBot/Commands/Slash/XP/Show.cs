@@ -8,8 +8,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DiscordBot.Commands.Slash.NewFolder1
-{
     public class ShowXpSlashCommand : ISlashCommands
     {
         public string CommandName => "show-xp";
@@ -25,8 +23,6 @@ namespace DiscordBot.Commands.Slash.NewFolder1
 
         public async Task RegisterCommandsAsync(DiscordSocketClient client)
         {
-            Console.WriteLine($"🔧 Registering command: {CommandName}");
-
             var command = new SlashCommandBuilder()
                 .WithName(CommandName)
                 .WithDescription("Affiche ton XP.");
@@ -51,5 +47,3 @@ namespace DiscordBot.Commands.Slash.NewFolder1
             await command.RespondAsync(embed: embed, ephemeral: true);
         }
     }
-
-}

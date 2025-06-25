@@ -3,9 +3,6 @@ using Discord.Commands;
 using Discord.WebSocket;
 using DiscordBot.Audio;
 using DiscordBot.Commands.Slash.Music;
-using DiscordBot.Commands.Slash.NewFolder;
-using DiscordBot.Commands.Slash.NewFolder1;
-using DiscordBot.Commands.Slash.Webtoons;
 using DiscordBot.Database;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,7 +15,8 @@ public class Bot : IBot
     private readonly DiscordSocketClient _client;
     private readonly CommandService _prefixCommands;
     private readonly List<ISlashCommands> _slashCommands;
-
+    private readonly Dictionary<ulong, DateTime> _xpCooldowns = new();
+    private readonly TimeSpan _xpCooldownDuration = TimeSpan.FromMinutes(2);
 
     public Bot(IConfiguration configuration)
     {
@@ -46,7 +44,6 @@ public class Bot : IBot
             new BanSlashCommand(_configuration),
             new KickSlashCommand(_configuration),
             new PurgeSlashCommand(_configuration),
-            new HelpSlashCommand(_configuration),
             new PollSlashCommand(_configuration),
             new DiceSlashCommand(_configuration),
             new CoinFlipSlashCommand(_configuration),
@@ -67,6 +64,17 @@ public class Bot : IBot
         _client.MessageReceived += async (message) =>
         {
             if (message.Author.IsBot || message.Channel is not SocketTextChannel textChannel) return;
+
+            if (textChannel.Guild.Id != ulong.Parse(_configuration["GuildID"]))
+                return;
+
+            if (_xpCooldowns.TryGetValue(message.Author.Id, out DateTime lastTime))
+            {
+                if (DateTime.UtcNow - lastTime < _xpCooldownDuration)
+                    return;
+            }
+
+            _xpCooldowns[message.Author.Id] = DateTime.UtcNow;
 
             if (message.Author is not SocketGuildUser user) return;
 
@@ -94,20 +102,26 @@ public class Bot : IBot
 
         _slashCommands.AddRange(new List<ISlashCommands>
         {
-            new AddWebtoonSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
-            new UpdateWebtoonSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
-            new DeleteWebtoonSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
-            new ListWebtoonsSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
-
+            
             new AddGifSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
             new UpdateGifSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
             new DeleteGifSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
             new UseGifSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
 
+            new AddWebtoonSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new UpdateWebtoonSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new DeleteWebtoonSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new ListWebtoonsSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+
             new ShowXpSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
             new ListXpSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
             new AddXpSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
             new UpdateXpSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+
+            new AddCommandSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new UpdateCommandSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new DeleteCommandSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new ListCommandsSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
 
             new PlaySlashCommand(_configuration, _serviceProvider.GetRequiredService<AudioService>())
         });
@@ -130,8 +144,7 @@ public class Bot : IBot
 
     private async Task<Task> OnClientReady()
     {
-        Console.WriteLine($"👋 Hello from {_client.CurrentUser.Username}!");
-        Console.WriteLine("✅ OnClientReady triggered");
+        Console.WriteLine("OnClientReady triggered");
 
         var db = _serviceProvider!.GetRequiredService<DatabaseService>();
 
@@ -141,27 +154,25 @@ public class Bot : IBot
 
         if (guild == null)
         {
-            Console.WriteLine($"❌ Bot is not in guild with ID: {guildId}");
+            Console.WriteLine($"Bot is not in guild with ID: {guildId}");
             return Task.CompletedTask;
         }
 
-        Console.WriteLine($"🔍 Processing guild: {guild.Name}");
-
         await guild.DownloadUsersAsync();
 
-        Console.WriteLine($"👥 Found {guild.Users.Count} users in guild");
 
         foreach (var user in guild.Users)
         {
             if (!user.IsBot)
             {
-                Console.WriteLine($"👤 Registering user {user.Username} ({user.Id})");
+                Console.WriteLine($"Registering user {user.Username} ({user.Id})");
                 await db.AddXPAsync(user.Id, user.DisplayName, 0);
             }
         }
 
         foreach (var module in _slashCommands)
         {
+            Console.WriteLine($"Registering command: {module.CommandName}");
             await module.RegisterCommandsAsync(_client);
         }
 

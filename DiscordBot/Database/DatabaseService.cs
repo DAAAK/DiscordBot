@@ -214,5 +214,59 @@ namespace DiscordBot.Database
 
             return (level, xp, nextLevelXP, xpRemaining);
         }
+
+        public async Task<bool> AddCommandAsync(string name, string description)
+        {
+            const string query = "INSERT INTO Commands (Name, Description) VALUES (@Name, @Description)";
+            using var conn = new SqlConnection(_connectionString);
+            using var cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@Name", name);
+            cmd.Parameters.AddWithValue("@Description", description);
+
+            await conn.OpenAsync();
+            return await cmd.ExecuteNonQueryAsync() > 0;
+        }
+
+        public async Task<bool> UpdateCommandAsync(string name, string description)
+        {
+            const string query = "UPDATE Commands SET Description = @Description WHERE Name = @Name";
+            using var conn = new SqlConnection(_connectionString);
+            using var cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@Name", name);
+            cmd.Parameters.AddWithValue("@Description", description);
+
+            await conn.OpenAsync();
+            return await cmd.ExecuteNonQueryAsync() > 0;
+        }
+
+        public async Task<bool> DeleteCommandAsync(string name)
+        {
+            const string query = "DELETE FROM Commands WHERE Name = @Name";
+            using var conn = new SqlConnection(_connectionString);
+            using var cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@Name", name);
+
+            await conn.OpenAsync();
+            return await cmd.ExecuteNonQueryAsync() > 0;
+        }
+
+        public async Task<List<(string Name, string Description)>> GetAllCommandsAsync()
+        {
+            const string query = "SELECT Name, Description FROM Commands ORDER BY Name";
+            using var conn = new SqlConnection(_connectionString);
+            using var cmd = new SqlCommand(query, conn);
+            await conn.OpenAsync();
+
+            var list = new List<(string, string)>();
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var name = reader.GetString(0);
+                var desc = reader.GetString(1);
+                list.Add((name, desc));
+            }
+
+            return list;
+        }
     }
 }

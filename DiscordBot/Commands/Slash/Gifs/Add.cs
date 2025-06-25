@@ -8,8 +8,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DiscordBot.Commands.Slash.NewFolder
-{
     public class AddGifSlashCommand : ISlashCommands
     {
         public string CommandName => "add-gif";
@@ -25,23 +23,34 @@ namespace DiscordBot.Commands.Slash.NewFolder
 
         public async Task RegisterCommandsAsync(DiscordSocketClient client)
         {
-            var command = new SlashCommandBuilder()
+        var command = new SlashCommandBuilder()
                 .WithName(CommandName)
                 .WithDescription("Add a new GIF.")
                 .AddOption("name", ApplicationCommandOptionType.String, "GIF name", true)
                 .AddOption("url", ApplicationCommandOptionType.String, "GIF URL", true);
 
-            await client.Rest.CreateGuildCommand(command.Build(), ulong.Parse(_configuration["GuildID"]));
-        }
-
-        public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
-        {
-            var name = command.Data.Options.First(o => o.Name == "name").Value.ToString();
-            var url = command.Data.Options.First(o => o.Name == "url").Value.ToString();
-
-            await _db.AddGifAsync(name, url);
-
-            await command.RespondAsync($"✅ GIF **{name}** added.", ephemeral: true);
-        }
+        await client.Rest.CreateGuildCommand(command.Build(), ulong.Parse(_configuration["GuildID"]));
     }
-}
+
+    public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
+    {
+        var nameOption = command.Data.Options.FirstOrDefault(o => o.Name == "name");
+        var urlOption = command.Data.Options.FirstOrDefault(o => o.Name == "url");
+
+        if (nameOption?.Value is not string name || string.IsNullOrWhiteSpace(name))
+        {
+            await command.RespondAsync("❌ GIF name is required and cannot be empty.", ephemeral: true);
+            return;
+        }
+
+        if (urlOption?.Value is not string url || string.IsNullOrWhiteSpace(url))
+        {
+            await command.RespondAsync("❌ GIF URL is required and cannot be empty.", ephemeral: true);
+            return;
+        }
+
+        await _db.AddGifAsync(name, url);
+
+        await command.RespondAsync($"✅ GIF **{name}** added.", ephemeral: true);
+    }
+    }

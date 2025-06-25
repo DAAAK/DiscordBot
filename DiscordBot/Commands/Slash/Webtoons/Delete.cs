@@ -8,8 +8,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DiscordBot.Commands.Slash.Webtoons
-{
     public class DeleteWebtoonSlashCommand : ISlashCommands
     {
         public string CommandName => "delete-webtoon";
@@ -69,4 +67,3 @@ namespace DiscordBot.Commands.Slash.Webtoons
             return user.Roles.Any(role => requiredRoleIds.Contains(role.Id));
         }
     }
-}

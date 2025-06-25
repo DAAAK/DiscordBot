@@ -1,16 +1,19 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using DiscordBot.Database;
 using Microsoft.Extensions.Configuration;
 
-public class HelpSlashCommand : ISlashCommands
+public class ListCommandsSlashCommand : ISlashCommands
 {
     public string CommandName => "help";
 
+    private readonly DatabaseService _db;
     private readonly IConfiguration _configuration;
 
-    public HelpSlashCommand(IConfiguration configuration)
+    public ListCommandsSlashCommand(IConfiguration configuration, DatabaseService db)
     {
         _configuration = configuration;
+        _db = db;
     }
 
     public async Task RegisterCommandsAsync(DiscordSocketClient client)
@@ -24,9 +27,7 @@ public class HelpSlashCommand : ISlashCommands
 
     public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
     {
-        var commandsSection = _configuration.GetSection("Commands");
-        Dictionary<string, string> commandDescriptions = commandsSection.GetChildren()
-            .ToDictionary(command => command.Key, command => command.Value);
+        var commandDescriptions = await _db.GetAllCommandsAsync();
 
         var embedBuilder = new EmbedBuilder()
             .WithTitle("📖 Here are the commands you can use")
@@ -79,6 +80,5 @@ public class HelpSlashCommand : ISlashCommands
             await command.RespondAsync(embed: helpEmbed, ephemeral: true);
         }
     }
-
 
 }

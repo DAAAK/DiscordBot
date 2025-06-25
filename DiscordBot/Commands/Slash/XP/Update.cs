@@ -8,8 +8,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DiscordBot.Commands.Slash.NewFolder1
-{
     public class UpdateXpSlashCommand : ISlashCommands
     {
         public string CommandName => "update-xp";
@@ -68,4 +66,3 @@ namespace DiscordBot.Commands.Slash.NewFolder1
             return user.Roles.Any(role => requiredRoleIds.Contains(role.Id));
         }
     }
-}

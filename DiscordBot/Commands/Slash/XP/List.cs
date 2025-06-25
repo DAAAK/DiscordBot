@@ -9,8 +9,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DiscordBot.Commands.Slash.NewFolder1
-{
     public class ListXpSlashCommand : ISlashCommands
     {
         public string CommandName => "leaderboard";
@@ -112,5 +110,3 @@ namespace DiscordBot.Commands.Slash.NewFolder1
         }
 
     }
-
-}

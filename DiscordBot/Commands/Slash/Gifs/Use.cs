@@ -8,8 +8,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DiscordBot.Commands.Slash.NewFolder
-{
     public class UseGifSlashCommand : ISlashCommands
     {
         public string CommandName => "gif";
@@ -72,4 +70,3 @@ namespace DiscordBot.Commands.Slash.NewFolder
         }
 
     }
-}

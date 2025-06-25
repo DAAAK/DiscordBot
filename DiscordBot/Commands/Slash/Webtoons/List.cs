@@ -8,11 +8,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DiscordBot.Commands.Slash.Webtoons
-{
     public class ListWebtoonsSlashCommand : ISlashCommands
     {
-        public string CommandName => " webtoons";
+        public string CommandName => "webtoons";
 
         private readonly IConfiguration _configuration;
         private readonly DatabaseService _databaseService;
@@ -100,5 +98,3 @@ namespace DiscordBot.Commands.Slash.Webtoons
             await command.RespondAsync(embed: embed.Build());
         }
     }
-
-}
