@@ -32,12 +32,13 @@ using System.Threading.Tasks;
         public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
         {
             var leaderboard = (await _db.GetLeaderboardAsync()).Take(5).ToList();
+          
             if (leaderboard.Count == 0)
             {
                 await command.RespondAsync("Aucun utilisateur n'a encore d'XP.", ephemeral: true);
                 return;
             }
-
+        
             var guild = (command.Channel as SocketGuildChannel)?.Guild;
             if (guild == null)
             {
@@ -56,11 +57,11 @@ using System.Threading.Tasks;
 
             await command.RespondWithFileAsync(imagePath, "leaderboard.png", embed: embed);
             File.Delete(imagePath);
-        }
+    }
 
-        private async Task<string> GenerateLeaderboardImage(List<(ulong UserId, int Level, int XP)> leaderboard, SocketGuild guild, string backgroundPath)
-        {
-            using var backgroundImage = System.Drawing.Image.FromFile(backgroundPath);
+    private async Task<string> GenerateLeaderboardImage(List<(ulong UserId, string Name, int Level, int XP)> leaderboard, SocketGuild guild, string backgroundPath)
+    {
+        using var backgroundImage = System.Drawing.Image.FromFile(backgroundPath);
 
             const int lineHeight = 60;
             const int padding = 40;
@@ -74,20 +75,18 @@ using System.Threading.Tasks;
             using var font = new Font("Arial", 24, FontStyle.Bold);
             using var brush = new SolidBrush(System.Drawing.Color.White);
 
-            for (int i = 0; i < leaderboard.Count; i++)
-            {
-                var (userId, level, xp) = leaderboard[i];
-                var user = guild.GetUser(userId);
-                var name = user?.DisplayName ?? $"Unknown {userId}";
+        for (int i = 0; i < leaderboard.Count; i++)
+        {
+            var (userId, name, level, xp) = leaderboard[i];
 
-                string line = $"{i + 1}. {name} — Level {level} ({xp} XP)";
-                g.DrawString(line, font, brush, padding, padding + i * lineHeight);
-            }
+            string line = $"{i + 1}. {name} — Level {level} ({xp} XP)";
+            g.DrawString(line, font, brush, padding, padding + i * lineHeight);
+        }
 
-            string tempPath = Path.Combine(Path.GetTempPath(), $"leaderboard_{Guid.NewGuid()}.png");
+        string tempPath = Path.Combine(Path.GetTempPath(), $"leaderboard_{Guid.NewGuid()}.png");
             bitmap.Save(tempPath, System.Drawing.Imaging.ImageFormat.Png);
             return tempPath;
-        }
+    }
 
 
         private string GetAssetPath(string relativePath)

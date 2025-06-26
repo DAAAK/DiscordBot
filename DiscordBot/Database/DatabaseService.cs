@@ -178,21 +178,38 @@ namespace DiscordBot.Database
             }
         }
 
-
-
-        public async Task<List<(ulong UserId, int Level, int XP)>> GetLeaderboardAsync()
+        public async Task<List<(ulong UserId, string Name, int Level, int XP)>> GetLeaderboardAsync()
         {
-            var list = new List<(ulong, int, int)>();
+            const string query = "SELECT UserId, UserName, Level, XP FROM UserXP ORDER BY Level DESC, XP DESC";
             using var conn = new SqlConnection(_connectionString);
-            var cmd = new SqlCommand("SELECT TOP 10 UserId, Level, XP FROM UserXP ORDER BY Level DESC, XP DESC", conn);
-            await conn.OpenAsync();
-            using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            using var cmd = new SqlCommand(query, conn);
+
+            var list = new List<(ulong, string, int, int)>();
+
+            try
             {
-                list.Add(((ulong)(long)reader["UserId"], (int)reader["Level"], (int)reader["XP"]));
+                await conn.OpenAsync();
+
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    var userId = (ulong)reader.GetInt64(0);
+                    var userName = reader.GetString(1);
+                    var level = reader.GetInt32(2);
+                    var xp = reader.GetInt32(3);
+
+                    list.Add((userId, userName, level, xp));
+                }
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
             return list;
         }
+
 
 
         public async Task<int> GetUserLevelAsync(ulong userId)

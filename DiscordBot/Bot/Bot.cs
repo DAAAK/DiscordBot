@@ -154,7 +154,6 @@ public class Bot : IBot
 
         if (guild == null)
         {
-            Console.WriteLine($"Bot is not in guild with ID: {guildId}");
             return Task.CompletedTask;
         }
 
@@ -165,14 +164,12 @@ public class Bot : IBot
         {
             if (!user.IsBot)
             {
-                Console.WriteLine($"Registering user {user.Username} ({user.Id})");
                 await db.AddXPAsync(user.Id, user.DisplayName, 0);
             }
         }
 
         foreach (var module in _slashCommands)
         {
-            Console.WriteLine($"Registering command: {module.CommandName}");
             await module.RegisterCommandsAsync(_client);
         }
 
@@ -184,8 +181,6 @@ public class Bot : IBot
         if (user.IsBot) return;
 
         var db = _serviceProvider!.GetRequiredService<DatabaseService>();
-
-        Console.WriteLine($"👋 New user joined: {user.Username} ({user.Id})");
 
         await db.AddXPAsync(user.Id, user.Username, 0);
     }
@@ -223,7 +218,6 @@ public class Bot : IBot
 
         }
     }
-
 
     private async Task AutocompleteHandler(SocketAutocompleteInteraction interaction)
     {
