@@ -43,7 +43,14 @@ public class DeleteGifSlashCommand : ISlashCommands
             await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
             return;
         }
-        var name = command.Data.Options.First(o => o.Name == "name").Value.ToString();
+
+        var nameOption = command.Data.Options.FirstOrDefault(o => o.Name == "name");
+
+        if (nameOption?.Value is not string name || string.IsNullOrWhiteSpace(name))
+        {
+            await command.RespondAsync("❌ Invalid GIF name provided.", ephemeral: true);
+            return;
+        }
 
         await _db.DeleteGifAsync(name);
 

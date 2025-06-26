@@ -29,6 +29,7 @@ public class UpdateStreamerSlashCommand : ISlashCommands
 
     public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
     {
+        var executor = (SocketGuildUser)command.User;
 
         var roleChecker = new RequiredRoles(_configuration);
 
@@ -45,7 +46,13 @@ public class UpdateStreamerSlashCommand : ISlashCommands
         }
 
         var user = (SocketGuildUser)command.Data.Options.First(o => o.Name == "user").Value;
-        var twitch = command.Data.Options.First(o => o.Name == "twitch").Value.ToString();
+        var twitchOption = command.Data.Options.First(o => o.Name == "twitch").Value;
+
+        if (twitchOption is not string twitch || string.IsNullOrWhiteSpace(twitch))
+        {
+            await command.RespondAsync("❌ Twitch username cannot be null or empty.", ephemeral: true);
+            return;
+        }
 
         bool success = await _db.UpdateStreamerAsync(user.Id, twitch);
 

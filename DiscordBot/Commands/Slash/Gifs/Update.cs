@@ -45,10 +45,22 @@ public class UpdateGifSlashCommand : ISlashCommands
             return;
         }
 
-        var name = command.Data.Options.First(o => o.Name == "name").Value.ToString();
-        var url = command.Data.Options.First(o => o.Name == "newurl").Value.ToString();
+        var nameOption = command.Data.Options.FirstOrDefault(o => o.Name == "name")?.Value?.ToString();
+        var urlOption = command.Data.Options.FirstOrDefault(o => o.Name == "newurl")?.Value?.ToString();
 
-        await _db.UpdateGifAsync(name, url);
-        await command.RespondAsync($"🔄 Updated **{name}** with new URL.", ephemeral: true);
+        if (string.IsNullOrWhiteSpace(nameOption) || string.IsNullOrWhiteSpace(urlOption))
+        {
+            var embedBuilder = new EmbedBuilder()
+                    .WithTitle("Invalid Input")
+                    .WithDescription("Both 'name' and 'newurl' options must be provided and non-empty.")
+                    .WithColor(Color.Red)
+                    .WithCurrentTimestamp();
+
+            await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
+            return;
+        }
+
+        await _db.UpdateGifAsync(nameOption, urlOption);
+        await command.RespondAsync($"🔄 Updated **{nameOption}** with new URL.", ephemeral: true);
     }
 }

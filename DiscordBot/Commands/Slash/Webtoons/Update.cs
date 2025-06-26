@@ -48,9 +48,24 @@ public class UpdateWebtoonSlashCommand : ISlashCommands
             return;
         }
 
-        var name = command.Data.Options.First(o => o.Name == "name").Value.ToString();
+        var nameOption = command.Data.Options.FirstOrDefault(o => o.Name == "name")?.Value?.ToString();
+        var statusOption = command.Data.Options.FirstOrDefault(o => o.Name == "status")?.Value?.ToString();
+
+        if (string.IsNullOrWhiteSpace(nameOption) || string.IsNullOrWhiteSpace(statusOption))
+        {
+            var embedBuilder = new EmbedBuilder()
+                    .WithTitle("Invalid Input")
+                    .WithDescription("The 'name' and 'status' options cannot be null or empty.")
+                    .WithColor(Color.Red)
+                    .WithCurrentTimestamp();
+
+            await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
+            return;
+        }
+
+        var name = nameOption;
         var chapter = Convert.ToInt32(command.Data.Options.First(o => o.Name == "chapter").Value);
-        var status = command.Data.Options.First(o => o.Name == "status").Value.ToString();
+        var status = statusOption;
 
         await _db.UpdateWebtoonAsync(name, chapter, status);
         await command.RespondAsync($"♻️ Updated **{name}** to Chapter {chapter} with status '{status}'.", ephemeral: true);

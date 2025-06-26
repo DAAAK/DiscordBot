@@ -49,8 +49,8 @@ public class AddCommandSlashCommand : ISlashCommands
             return;
         }
 
-        string name = command.Data.Options.First(o => o.Name == "name").Value.ToString();
-        string description = command.Data.Options.First(o => o.Name == "description").Value.ToString();
+        string name = command.Data.Options.First(o => o.Name == "name")?.Value?.ToString() ?? string.Empty;
+        string description = command.Data.Options.First(o => o.Name == "description")?.Value?.ToString() ?? string.Empty;
 
         bool success = await _db.AddCommandAsync(name, description);
         if (success)

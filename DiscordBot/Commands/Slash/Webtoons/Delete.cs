@@ -46,7 +46,20 @@ public class DeleteWebtoonSlashCommand : ISlashCommands
             return;
         }
 
-        var name = command.Data.Options.First(o => o.Name == "name").Value.ToString();
+        var nameOption = command.Data.Options.FirstOrDefault(o => o.Name == "name");
+
+        if (nameOption?.Value is not string name || string.IsNullOrWhiteSpace(name))
+        {
+            var embedBuilder = new EmbedBuilder()
+                    .WithTitle("Invalid Input")
+                    .WithDescription("The webtoon name provided is invalid or missing.")
+                    .WithColor(Color.Red)
+                    .WithCurrentTimestamp();
+
+            await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
+            return;
+        }
+
         await _db.DeleteWebtoonAsync(name);
         await command.RespondAsync($"🗑️ Deleted **{name}** from your webtoons.", ephemeral: true);
     }

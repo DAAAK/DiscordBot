@@ -28,6 +28,8 @@ public class DeleteStreamerSlashCommand : ISlashCommands
 
     public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
     {
+        var executor = (SocketGuildUser)command.User;
+
         var roleChecker = new RequiredRoles(_configuration);
 
         if (!roleChecker.HasRequiredRole(executor))

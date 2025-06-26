@@ -48,9 +48,16 @@ public class DeleteCommandSlashCommand : ISlashCommands
             return;
         }
 
-        string name = command.Data.Options.First(o => o.Name == "name").Value.ToString();
+        string? name = command.Data.Options.FirstOrDefault(o => o.Name == "name")?.Value?.ToString();
+
+        if (string.IsNullOrEmpty(name))
+        {
+            await command.RespondAsync("❌ Command name is missing or invalid.", ephemeral: true);
+            return;
+        }
 
         bool success = await _db.DeleteCommandAsync(name);
+        
         if (success)
         {
             await command.RespondAsync($"🗑️ Command `/{name}` deleted.", ephemeral: true);

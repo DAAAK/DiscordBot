@@ -46,9 +46,25 @@ public class AddWebtoonSlashCommand : ISlashCommands
             return;
         }
 
-        var name = command.Data.Options.First(o => o.Name == "name").Value.ToString();
-        var chapter = Convert.ToInt32(command.Data.Options.First(o => o.Name == "chapter").Value);
-        var status = command.Data.Options.First(o => o.Name == "status").Value.ToString();
+        var nameOption = command.Data.Options.FirstOrDefault(o => o.Name == "name");
+        var chapterOption = command.Data.Options.FirstOrDefault(o => o.Name == "chapter");
+        var statusOption = command.Data.Options.FirstOrDefault(o => o.Name == "status");
+
+        if (nameOption?.Value == null || statusOption?.Value == null || chapterOption?.Value == null)
+        {
+            await command.RespondAsync("❌ Invalid input. Please ensure all required fields are provided.", ephemeral: true);
+            return;
+        }
+
+        var name = nameOption.Value?.ToString() ?? string.Empty;
+        var chapter = Convert.ToInt32(chapterOption.Value);
+        var status = statusOption.Value?.ToString() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(status))
+        {
+            await command.RespondAsync("❌ Invalid input. Name and status cannot be empty.", ephemeral: true);
+            return;
+        }
 
         await _db.AddWebtoonAsync(name, chapter, status);
 

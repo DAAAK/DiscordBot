@@ -45,8 +45,14 @@ public class UpdateCommandSlashCommand : ISlashCommands
             return;
         }
 
-        string name = command.Data.Options.First(o => o.Name == "name").Value.ToString();
-        string description = command.Data.Options.First(o => o.Name == "description").Value.ToString();
+        string? name = command.Data.Options.FirstOrDefault(o => o.Name == "name")?.Value?.ToString();
+        string? description = command.Data.Options.FirstOrDefault(o => o.Name == "description")?.Value?.ToString();
+
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(description))
+        {
+            await command.RespondAsync("❌ Invalid command options provided.", ephemeral: true);
+            return;
+        }
 
         bool success = await _db.UpdateCommandAsync(name, description);
         if (success)
