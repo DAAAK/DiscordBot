@@ -285,5 +285,81 @@ namespace DiscordBot.Database
 
             return list;
         }
+
+        public async Task<List<(ulong DiscordUserId, string TwitchUsername, int LastLiveStatus)>> GetAllStreamersAsync()
+        {
+            const string query = "SELECT DiscordUserId, TwitchUsername, LastLiveStatus FROM Streamers";
+            using var conn = new SqlConnection(_connectionString);
+            using var cmd = new SqlCommand(query, conn);
+            await conn.OpenAsync();
+
+            var list = new List<(ulong, string, int)>();
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var id = (ulong)reader.GetInt64(0);
+                var twitch = reader.GetString(1);
+                var status = reader.GetInt32(2);
+                list.Add((id, twitch, status));
+            }
+            return list;
+        }
+
+        public async Task UpdateLiveStatus(ulong discordUserId, bool isLive)
+        {
+            const string query = "UPDATE Streamers SET LastLiveStatus = @status WHERE DiscordUserId = @id";
+            using var conn = new SqlConnection(_connectionString);
+            using var cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@id", (long)discordUserId);
+            cmd.Parameters.AddWithValue("@status", isLive ? 1 : 0);
+            await conn.OpenAsync();
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        public async Task<bool> AddStreamerAsync(ulong discordId, string twitchName)
+        {
+            const string query = @"
+        IF NOT EXISTS (SELECT 1 FROM Streamers WHERE DiscordUserId = @id)
+        BEGIN
+            INSERT INTO Streamers (DiscordUserId, TwitchUsername, LastLiveStatus)
+            VALUES (@id, @twitch, 0)
+        END";
+
+            using var conn = new SqlConnection(_connectionString);
+            using var cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@id", (long)discordId);
+            cmd.Parameters.AddWithValue("@twitch", twitchName);
+
+            await conn.OpenAsync();
+            int rows = await cmd.ExecuteNonQueryAsync();
+            return rows > 0;
+        }
+
+        public async Task<bool> DeleteStreamerAsync(ulong discordId)
+        {
+            const string query = "DELETE FROM Streamers WHERE DiscordUserId = @id";
+
+            using var conn = new SqlConnection(_connectionString);
+            using var cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@id", (long)discordId);
+
+            await conn.OpenAsync();
+            int rows = await cmd.ExecuteNonQueryAsync();
+            return rows > 0;
+        }
+
+        public async Task<bool> UpdateStreamerAsync(ulong discordId, string newTwitchName)
+        {
+            const string query = "UPDATE Streamers SET TwitchUsername = @twitch WHERE DiscordUserId = @id";
+
+            using var conn = new SqlConnection(_connectionString);
+            using var cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@id", (long)discordId);
+            cmd.Parameters.AddWithValue("@twitch", newTwitchName);
+
+            await conn.OpenAsync();
+            int rows = await cmd.ExecuteNonQueryAsync();
+            return rows > 0;
+        }
     }
 }

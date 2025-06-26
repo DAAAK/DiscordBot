@@ -22,6 +22,7 @@ public class Program
             .AddScoped<IBot, Bot>()
             .AddSingleton<DiscordSocketClient>()
             .AddSingleton<AudioService>()
+            .AddSingleton<TwitchTokenService>()
             .AddSingleton<DatabaseService>()
             .BuildServiceProvider();
 

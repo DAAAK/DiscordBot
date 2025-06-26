@@ -60,6 +60,8 @@ public class Bot : IBot
         var client = _serviceProvider.GetRequiredService<DiscordSocketClient>();
         var db = _serviceProvider.GetRequiredService<DatabaseService>();
 
+        var tokenService = _serviceProvider.GetRequiredService<TwitchTokenService>();
+        new TwitchMonitor(_configuration, _client, db, tokenService);
 
         _client.MessageReceived += async (message) =>
         {
@@ -123,6 +125,11 @@ public class Bot : IBot
             new DeleteCommandSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
             new ListCommandsSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
 
+            new AddStreamerSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new UpdateStreamerSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new DeleteStreamerSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+            new ListStreamersSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
+
             new PlaySlashCommand(_configuration, _serviceProvider.GetRequiredService<AudioService>())
         });
 
@@ -173,6 +180,7 @@ public class Bot : IBot
             await module.RegisterCommandsAsync(_client);
         }
 
+        Console.WriteLine("Finished registering commands.");
         return Task.CompletedTask;
     }
 
