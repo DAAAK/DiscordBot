@@ -2,27 +2,22 @@
 using Discord.WebSocket;
 using DiscordBot.Database;
 using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-    public class AddGifSlashCommand : ISlashCommands
+public class AddGifSlashCommand : ISlashCommands
+{
+    public string CommandName => "add-gif";
+
+    private readonly IConfiguration _configuration;
+    private readonly DatabaseService _db;
+
+    public AddGifSlashCommand(IConfiguration configuration, DatabaseService db)
     {
-        public string CommandName => "add-gif";
+        _configuration = configuration;
+        _db = db;
+    }
 
-        private readonly IConfiguration _configuration;
-        private readonly DatabaseService _db;
-
-        public AddGifSlashCommand(IConfiguration configuration, DatabaseService db)
-        {
-            _configuration = configuration;
-            _db = db;
-        }
-
-        public async Task RegisterCommandsAsync(DiscordSocketClient client)
-        {
+    public async Task RegisterCommandsAsync(DiscordSocketClient client)
+    {
         var command = new SlashCommandBuilder()
                 .WithName(CommandName)
                 .WithDescription("Add a new GIF.")
@@ -34,6 +29,22 @@ using System.Threading.Tasks;
 
     public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
     {
+        var executor = (SocketGuildUser)command.User;
+
+        var roleChecker = new RequiredRoles(_configuration);
+
+        if (!roleChecker.HasRequiredRole(executor))
+        {
+            var embedBuilder = new EmbedBuilder()
+                    .WithTitle("Permission Refusée")
+                    .WithDescription("Vous n'avez pas la permission d'utiliser cette commande.")
+                    .WithColor(Color.Red)
+                    .WithCurrentTimestamp();
+
+            await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
+            return;
+        }
+
         var nameOption = command.Data.Options.FirstOrDefault(o => o.Name == "name");
         var urlOption = command.Data.Options.FirstOrDefault(o => o.Name == "url");
 
@@ -53,4 +64,4 @@ using System.Threading.Tasks;
 
         await command.RespondAsync($"✅ GIF **{name}** added.", ephemeral: true);
     }
-    }
+}

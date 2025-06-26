@@ -27,13 +27,15 @@ public class KickSlashCommand : ISlashCommands
 
         var executor = (SocketGuildUser)command.User;
 
-        if (!HasRequiredRole(executor))
+        var roleChecker = new RequiredRoles(_configuration);
+
+        if (!roleChecker.HasRequiredRole(executor))
         {
             var embedBuilder = new EmbedBuilder()
-                .WithTitle("Permission Denied")
-                .WithDescription($"You do not have permission to use this command.")
-                .WithColor(Color.Red)
-                .WithCurrentTimestamp();
+                    .WithTitle("Permission Refusée")
+                    .WithDescription("Vous n'avez pas la permission d'utiliser cette commande.")
+                    .WithColor(Color.Red)
+                    .WithCurrentTimestamp();
 
             await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
             return;
@@ -64,24 +66,5 @@ public class KickSlashCommand : ISlashCommands
 
             await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
         }
-    }
-    private bool HasRequiredRole(SocketGuildUser user)
-    {
-        if (_configuration == null || !_configuration.GetSection("RequiredRolesIDS").Exists())
-        {
-            return false;
-        }
-
-        var requiredRoleIds = _configuration.GetSection("RequiredRolesIDS").GetChildren().Select(x => ulong.Parse(x.Value)).ToArray();
-
-        foreach (var roleId in requiredRoleIds)
-        {
-            if (user.Roles.Any(role => role.Id == roleId))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

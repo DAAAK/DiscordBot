@@ -32,6 +32,22 @@ public class DeleteCommandSlashCommand : ISlashCommands
 
     public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
     {
+        var executor = (SocketGuildUser)command.User;
+
+        var roleChecker = new RequiredRoles(_configuration);
+
+        if (!roleChecker.HasRequiredRole(executor))
+        {
+            var embedBuilder = new EmbedBuilder()
+                    .WithTitle("Permission Refusée")
+                    .WithDescription("Vous n'avez pas la permission d'utiliser cette commande.")
+                    .WithColor(Color.Red)
+                    .WithCurrentTimestamp();
+
+            await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
+            return;
+        }
+
         string name = command.Data.Options.First(o => o.Name == "name").Value.ToString();
 
         bool success = await _db.DeleteCommandAsync(name);
