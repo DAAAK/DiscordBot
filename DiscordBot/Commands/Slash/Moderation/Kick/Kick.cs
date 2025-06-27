@@ -14,7 +14,7 @@ public class KickSlashCommand : ISlashCommands
     public async Task RegisterCommandsAsync(DiscordSocketClient client)
     {
         var guildCommand = new SlashCommandBuilder()
-            .WithName("kick")
+            .WithName(CommandName)
             .WithDescription("Kick a user from the server.")
             .AddOption("user", ApplicationCommandOptionType.User, "The user to kick.", isRequired: true)
             .AddOption("reason", ApplicationCommandOptionType.String, "The reason for the kick.", isRequired: false);

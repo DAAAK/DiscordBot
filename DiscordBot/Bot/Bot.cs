@@ -1,5 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
+using Discord.Net.Rest;
+using Discord.Rest;
 using Discord.WebSocket;
 using DiscordBot.Audio;
 using DiscordBot.Commands.Slash.Music;
@@ -174,6 +176,15 @@ public class Bot : IBot
                 await db.AddXPAsync(user.Id, user.DisplayName, 0);
             }
         }
+
+        var existingCommands = await _client.Rest.GetGuildApplicationCommands(guild.Id);
+
+        foreach (var cmd in existingCommands)
+        {
+            await cmd.DeleteAsync();
+        }
+
+        Console.WriteLine("Finished deleting commands.");
 
         foreach (var module in _slashCommands)
         {

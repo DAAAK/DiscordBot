@@ -16,7 +16,7 @@ public class PurgeSlashCommand : ISlashCommands
     public async Task RegisterCommandsAsync(DiscordSocketClient client)
     {
         var guildCommand = new SlashCommandBuilder()
-            .WithName("purge")
+            .WithName(CommandName)
             .WithDescription("Clear all messages from a text channel.")
             .AddOption("message_count", ApplicationCommandOptionType.Integer, "Number of messages to delete.", isRequired: true);
 

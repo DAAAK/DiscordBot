@@ -16,7 +16,7 @@ public class ListRolesSlashCommand : ISlashCommands
     public async Task RegisterCommandsAsync(DiscordSocketClient client)
     {
         var guildCommand = new SlashCommandBuilder()
-            .WithName("list-roles")
+            .WithName(CommandName)
             .WithDescription("Lists all roles of a user.")
             .AddOption("user", ApplicationCommandOptionType.User, "The user whose roles you want to be listed", isRequired: true);
         await client.Rest.CreateGuildCommand(guildCommand.Build(), ulong.Parse(_configuration["GuildID"]));

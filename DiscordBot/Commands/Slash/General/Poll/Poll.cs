@@ -16,7 +16,7 @@ using Microsoft.Extensions.Configuration;
         public async Task RegisterCommandsAsync(DiscordSocketClient client)
         {
             var pollCommand = new SlashCommandBuilder()
-                .WithName("poll")
+                .WithName(CommandName)
                 .WithDescription("Create a poll with up to 10 options.")
                 .AddOption("question", ApplicationCommandOptionType.String, "The poll question", isRequired: true);
 

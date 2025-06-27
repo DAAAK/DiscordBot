@@ -19,7 +19,7 @@ public class ListCommandsSlashCommand : ISlashCommands
     public async Task RegisterCommandsAsync(DiscordSocketClient client)
     {
         var guildCommand = new SlashCommandBuilder()
-            .WithName("help")
+            .WithName(CommandName)
             .WithDescription("Lists all the available commands.");
 
         await client.Rest.CreateGuildCommand(guildCommand.Build(), ulong.Parse(_configuration["GuildID"]));

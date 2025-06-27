@@ -21,7 +21,7 @@ public class HangmanSlashCommand : ISlashCommands
     public async Task RegisterCommandsAsync(DiscordSocketClient client)
     {
         var group = new SlashCommandBuilder()
-            .WithName("hangman")
+            .WithName(CommandName)
             .WithDescription("Play a game of Hangman.")
             .AddOption(new SlashCommandOptionBuilder()
                 .WithName("start")

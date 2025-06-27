@@ -16,7 +16,7 @@ public class BanSlashCommand : ISlashCommands
     public async Task RegisterCommandsAsync(DiscordSocketClient client)
     {
         var guildCommand = new SlashCommandBuilder()
-            .WithName("ban")
+            .WithName(CommandName)
             .WithDescription("Ban selected user.")
             .AddOption("user", ApplicationCommandOptionType.User, "The user you want to ban", isRequired: true)
             .AddOption("reason", ApplicationCommandOptionType.String, "The reason for the ban.", isRequired: false);

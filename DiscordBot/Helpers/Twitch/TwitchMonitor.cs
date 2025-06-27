@@ -49,7 +49,7 @@ public class TwitchMonitor
 
     private async Task<bool> IsTwitchUserLive(string username)
     {
-        var clientId = _config["TwitchClientId"];
+        var clientId = _config["TwitchClientID"];
         var accessToken = await _tokenService.GetAccessTokenAsync();
 
         using var client = new HttpClient();
