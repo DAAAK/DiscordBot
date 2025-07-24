@@ -30,7 +30,6 @@ public class TwitchTokenService
         {
             return accessTokenElement.GetString()!;
         }
-
         throw new Exception("Access token not found in response.");
     }
 }

@@ -6,7 +6,6 @@ using Microsoft.Extensions.Configuration;
 public class UpdateWebtoonSlashCommand : ISlashCommands
 {
     public string CommandName => "update-webtoon";
-
     private readonly IConfiguration _configuration;
     private readonly DatabaseService _db;
 
@@ -19,7 +18,6 @@ public class UpdateWebtoonSlashCommand : ISlashCommands
     public async Task RegisterCommandsAsync(DiscordSocketClient client)
     {
         var guildId = ulong.Parse(_configuration["GuildID"]);
-
         var command = new SlashCommandBuilder()
             .WithName(CommandName)
             .WithDescription("Update a webtoon's chapter and status.")
@@ -33,17 +31,15 @@ public class UpdateWebtoonSlashCommand : ISlashCommands
     public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
     {
         var executor = (SocketGuildUser)command.User;
-
         var roleChecker = new RequiredRoles(_configuration);
 
         if (!roleChecker.HasRequiredRole(executor))
         {
             var embedBuilder = new EmbedBuilder()
-                    .WithTitle("Permission Refusée")
-                    .WithDescription("Vous n'avez pas la permission d'utiliser cette commande.")
-                    .WithColor(Color.Red)
-                    .WithCurrentTimestamp();
-
+                .WithTitle("Permission Refusée")
+                .WithDescription("Vous n'avez pas la permission d'utiliser cette commande.")
+                .WithColor(Color.Red)
+                .WithCurrentTimestamp();
             await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
             return;
         }
@@ -54,11 +50,10 @@ public class UpdateWebtoonSlashCommand : ISlashCommands
         if (string.IsNullOrWhiteSpace(nameOption) || string.IsNullOrWhiteSpace(statusOption))
         {
             var embedBuilder = new EmbedBuilder()
-                    .WithTitle("Invalid Input")
-                    .WithDescription("The 'name' and 'status' options cannot be null or empty.")
-                    .WithColor(Color.Red)
-                    .WithCurrentTimestamp();
-
+                .WithTitle("Invalid Input")
+                .WithDescription("The 'name' and 'status' options cannot be null or empty.")
+                .WithColor(Color.Red)
+                .WithCurrentTimestamp();
             await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
             return;
         }
@@ -67,7 +62,16 @@ public class UpdateWebtoonSlashCommand : ISlashCommands
         var chapter = Convert.ToInt32(command.Data.Options.First(o => o.Name == "chapter").Value);
         var status = statusOption;
 
-        await _db.UpdateWebtoonAsync(name, chapter, status);
-        await command.RespondAsync($"♻️ Updated **{name}** to Chapter {chapter} with status '{status}'.", ephemeral: true);
+        bool success = await _db.UpdateWebtoonAsync(name, chapter, status);
+
+        if (success)
+        {
+            await command.RespondAsync($"♻️ Updated **{name}** to Chapter {chapter} with status '{status}'.", ephemeral: true);
+            await WebtoonMessageUpdater.UpdateWebtoonMessageAsync(client, _db, _configuration);
+        }
+        else
+        {
+            await command.RespondAsync("❌ Failed to update the webtoon.", ephemeral: true);
+        }
     }
 }

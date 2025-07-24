@@ -6,7 +6,6 @@ using Microsoft.Extensions.Configuration;
 public class DeleteWebtoonSlashCommand : ISlashCommands
 {
     public string CommandName => "delete-webtoon";
-
     private readonly IConfiguration _configuration;
     private readonly DatabaseService _db;
 
@@ -19,48 +18,51 @@ public class DeleteWebtoonSlashCommand : ISlashCommands
     public async Task RegisterCommandsAsync(DiscordSocketClient client)
     {
         var guildId = ulong.Parse(_configuration["GuildID"]);
-
         var command = new SlashCommandBuilder()
             .WithName(CommandName)
             .WithDescription("Delete a webtoon by name.")
             .AddOption("name", ApplicationCommandOptionType.String, "Webtoon name", true);
-
         await client.Rest.CreateGuildCommand(command.Build(), guildId);
     }
 
     public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
     {
         var executor = (SocketGuildUser)command.User;
-
         var roleChecker = new RequiredRoles(_configuration);
 
         if (!roleChecker.HasRequiredRole(executor))
         {
             var embedBuilder = new EmbedBuilder()
-                    .WithTitle("Permission Refusée")
-                    .WithDescription("Vous n'avez pas la permission d'utiliser cette commande.")
-                    .WithColor(Color.Red)
-                    .WithCurrentTimestamp();
-
+                .WithTitle("Permission Refusée")
+                .WithDescription("Vous n'avez pas la permission d'utiliser cette commande.")
+                .WithColor(Color.Red)
+                .WithCurrentTimestamp();
             await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
             return;
         }
 
         var nameOption = command.Data.Options.FirstOrDefault(o => o.Name == "name");
-
         if (nameOption?.Value is not string name || string.IsNullOrWhiteSpace(name))
         {
             var embedBuilder = new EmbedBuilder()
-                    .WithTitle("Invalid Input")
-                    .WithDescription("The webtoon name provided is invalid or missing.")
-                    .WithColor(Color.Red)
-                    .WithCurrentTimestamp();
-
+                .WithTitle("Invalid Input")
+                .WithDescription("The webtoon name provided is invalid or missing.")
+                .WithColor(Color.Red)
+                .WithCurrentTimestamp();
             await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
             return;
         }
 
-        await _db.DeleteWebtoonAsync(name);
-        await command.RespondAsync($"🗑️ Deleted **{name}** from your webtoons.", ephemeral: true);
+        bool success = await _db.DeleteWebtoonAsync(name);
+
+        if (success)
+        {
+            await command.RespondAsync($"🗑️ Deleted **{name}** from your webtoons.", ephemeral: true);
+            await WebtoonMessageUpdater.UpdateWebtoonMessageAsync(client, _db, _configuration);
+        }
+        else
+        {
+            await command.RespondAsync("❌ Failed to delete the webtoon or webtoon not found.", ephemeral: true);
+        }
     }
 }

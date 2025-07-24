@@ -6,7 +6,6 @@ using Microsoft.Extensions.Configuration;
 public class AddWebtoonSlashCommand : ISlashCommands
 {
     public string CommandName => "add-webtoon";
-
     private readonly IConfiguration _configuration;
     private readonly DatabaseService _db;
 
@@ -24,24 +23,21 @@ public class AddWebtoonSlashCommand : ISlashCommands
             .AddOption("name", ApplicationCommandOptionType.String, "Webtoon name", true)
             .AddOption("chapter", ApplicationCommandOptionType.Integer, "Current chapter", true)
             .AddOption("status", ApplicationCommandOptionType.String, "Webtoon status", true);
-
         await client.Rest.CreateGuildCommand(command.Build(), ulong.Parse(_configuration["GuildID"]));
     }
 
     public async Task HandleCommand(SocketSlashCommand command, DiscordSocketClient client)
     {
         var executor = (SocketGuildUser)command.User;
-
         var roleChecker = new RequiredRoles(_configuration);
 
         if (!roleChecker.HasRequiredRole(executor))
         {
             var embedBuilder = new EmbedBuilder()
-                    .WithTitle("Permission Refusée")
-                    .WithDescription("Vous n'avez pas la permission d'utiliser cette commande.")
-                    .WithColor(Color.Red)
-                    .WithCurrentTimestamp();
-
+                .WithTitle("Permission Refusée")
+                .WithDescription("Vous n'avez pas la permission d'utiliser cette commande.")
+                .WithColor(Color.Red)
+                .WithCurrentTimestamp();
             await command.RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
             return;
         }
@@ -66,8 +62,16 @@ public class AddWebtoonSlashCommand : ISlashCommands
             return;
         }
 
-        await _db.AddWebtoonAsync(name, chapter, status);
+        bool success = await _db.AddWebtoonAsync(name, chapter, status);
 
-        await command.RespondAsync($"✅ Webtoon **{name}** added.", ephemeral: true);
+        if (success)
+        {
+            await command.RespondAsync($"✅ Webtoon **{name}** added.", ephemeral: true);
+            await WebtoonMessageUpdater.UpdateWebtoonMessageAsync(client, _db, _configuration);
+        }
+        else
+        {
+            await command.RespondAsync("❌ Failed to add the webtoon.", ephemeral: true);
+        }
     }
 }

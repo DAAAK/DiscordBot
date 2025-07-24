@@ -26,7 +26,7 @@ public class Bot : IBot
 
         DiscordSocketConfig config = new()
         {
-            GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent | GatewayIntents.Guilds | GatewayIntents.GuildMembers | GatewayIntents.GuildMessages | GatewayIntents.GuildMessageReactions | GatewayIntents.GuildVoiceStates | GatewayIntents.DirectMessages | GatewayIntents.DirectMessageReactions | GatewayIntents.DirectMessageTyping | GatewayIntents.GuildVoiceStates,
+            GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent | GatewayIntents.Guilds | GatewayIntents.GuildMembers | GatewayIntents.GuildMessages | GatewayIntents.GuildMessageReactions | GatewayIntents.GuildVoiceStates | GatewayIntents.DirectMessages | GatewayIntents.DirectMessageReactions | GatewayIntents.DirectMessageTyping | GatewayIntents.GuildVoiceStates | GatewayIntents.GuildPresences,
         };
 
         _client = new DiscordSocketClient(config);
@@ -188,6 +188,7 @@ public class Bot : IBot
 
         foreach (var module in _slashCommands)
         {
+            Console.WriteLine($"Registering Command: {module}");
             await module.RegisterCommandsAsync(_client);
         }
 

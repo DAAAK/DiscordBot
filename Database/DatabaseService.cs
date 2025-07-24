@@ -34,7 +34,7 @@ namespace DiscordBot.Database
             return webtoons;
         }
 
-        public async Task AddWebtoonAsync(string name, int chapter, string status)
+        public async Task<bool> AddWebtoonAsync(string name, int chapter, string status)
         {
             using var connection = new SqlConnection(_connectionString);
             using var command = new SqlCommand("INSERT INTO Webtoons (Name, Chapter, Status) VALUES (@name, @chapter, @status)", connection);
@@ -42,19 +42,19 @@ namespace DiscordBot.Database
             command.Parameters.AddWithValue("@chapter", chapter);
             command.Parameters.AddWithValue("@status", status);
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
+            return await command.ExecuteNonQueryAsync()  > 0;
         }
 
-        public async Task DeleteWebtoonAsync(string name)
+        public async Task<bool> DeleteWebtoonAsync(string name)
         {
             using var connection = new SqlConnection(_connectionString);
             using var command = new SqlCommand("DELETE FROM Webtoons WHERE Name = @name", connection);
             command.Parameters.AddWithValue("@name", name);
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
+            return await command.ExecuteNonQueryAsync()  > 0;
         }
 
-        public async Task UpdateWebtoonAsync(string name, int chapter, string status)
+        public async Task<bool> UpdateWebtoonAsync(string name, int chapter, string status)
         {
             using var connection = new SqlConnection(_connectionString);
             using var command = new SqlCommand("UPDATE Webtoons SET Chapter = @chapter, Status = @status WHERE Name = @name", connection);
@@ -62,7 +62,8 @@ namespace DiscordBot.Database
             command.Parameters.AddWithValue("@chapter", chapter);
             command.Parameters.AddWithValue("@status", status);
             await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
+
+            return await command.ExecuteNonQueryAsync() > 0;
         }
 
         public async Task AddGifAsync(string name, string url)
@@ -231,6 +232,25 @@ namespace DiscordBot.Database
 
             return (level, xp, nextLevelXP, xpRemaining);
         }
+
+        public async Task<int> GetUserRankAsync(ulong userId)
+        {
+            const string query = @"
+        SELECT COUNT(*) + 1
+        FROM UserXP
+        WHERE (Level > (SELECT Level FROM UserXP WHERE UserId = @userId))
+           OR (Level = (SELECT Level FROM UserXP WHERE UserId = @userId)
+               AND XP > (SELECT XP FROM UserXP WHERE UserId = @userId))";
+
+            using var conn = new SqlConnection(_connectionString);
+            using var cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@userId", (long)userId);
+
+            await conn.OpenAsync();
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt32(result);
+        }
+
 
         public async Task<bool> AddCommandAsync(string name, string description)
         {
