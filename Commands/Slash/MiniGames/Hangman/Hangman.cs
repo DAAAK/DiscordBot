@@ -9,7 +9,7 @@ public class HangmanSlashCommand : ISlashCommands
 {
     public string CommandName => "hangman";
 
-    private static readonly ConcurrentDictionary<ulong, HangmanGame> ActiveGames = new(); // GuildId -> Game
+    private static readonly ConcurrentDictionary<ulong, HangmanGame> ActiveGames = new();
 
     private readonly IConfiguration _configuration;
 
@@ -31,9 +31,9 @@ public class HangmanSlashCommand : ISlashCommands
             )
             .AddOption(new SlashCommandOptionBuilder()
                 .WithName("guess")
-                .WithDescription("Guess a letter.")
+                .WithDescription("Guess a letter or the full word.")
                 .WithType(ApplicationCommandOptionType.SubCommand)
-                .AddOption("letter", ApplicationCommandOptionType.String, "Your letter guess", isRequired: true)
+                .AddOption("input", ApplicationCommandOptionType.String, "A letter (a-z) or the full word", isRequired: true)
             );
 
         await client.Rest.CreateGuildCommand(group.Build(), ulong.Parse(_configuration["GuildID"]));
@@ -62,20 +62,26 @@ public class HangmanSlashCommand : ISlashCommands
         {
             case "start":
                 var word = subCommand.Options.First().Value.ToString()?.ToLower();
-                if (string.IsNullOrWhiteSpace(word) || !Regex.IsMatch(word, @"^[a-zA-Z]+$"))
+                word = Regex.Replace(word?.Trim() ?? "", @"\s+", " ");
+
+
+                if (string.IsNullOrWhiteSpace(word) || !Regex.IsMatch(word, @"^[a-zA-Z ]+$"))
                 {
                     await command.RespondAsync("❌ The word must contain only letters (a–z).", ephemeral: true);
                     return;
                 }
 
-                if (ActiveGames.ContainsKey(guildId.Value))
+                var channelId = command.Channel.Id;
+
+                if (ActiveGames.ContainsKey(channelId))
                 {
-                    await command.RespondAsync("❗ A game is already active. Finish it before starting a new one.", ephemeral: true);
+                    await command.RespondAsync("❗ A game is already active in this channel.", ephemeral: true);
                     return;
                 }
 
-                ActiveGames[guildId.Value] = new HangmanGame(word);
-                await command.RespondAsync($"🎮 A new Hangman game has started!\nWord: {ActiveGames[guildId.Value].GetMaskedWord()}\nLives: {ActiveGames[guildId.Value].Lives}");
+                ActiveGames[channelId] = new HangmanGame(word);
+                await command.RespondAsync($"🎮 A new Hangman game has started!\nWord: {ActiveGames[channelId].GetMaskedWord()}\nLives: {ActiveGames[channelId].Lives}");
+
                 break;
 
             case "guess":
@@ -85,14 +91,40 @@ public class HangmanSlashCommand : ISlashCommands
                     return;
                 }
 
-                var letterStr = subCommand.Options.First().Value.ToString()?.ToLower();
-                if (string.IsNullOrWhiteSpace(letterStr) || letterStr.Length != 1 || !char.IsLetter(letterStr[0]))
+                var input = subCommand.Options.First().Value.ToString()?.ToLower()?.Trim();
+
+                if (string.IsNullOrWhiteSpace(input) || !Regex.IsMatch(input, @"^[a-zA-Z]+$"))
                 {
-                    await command.RespondAsync("❌ Please enter a **single letter (a–z)**.", ephemeral: true);
+                    await command.RespondAsync("❌ Please enter only letters (a–z).", ephemeral: true);
                     return;
                 }
 
-                var guess = letterStr[0];
+                if (input.Length > 1)
+                {
+                    bool correctWord = game.GuessWord(input);
+
+                    if (correctWord)
+                    {
+                        ActiveGames.TryRemove(guildId.Value, out _);
+                        await command.RespondAsync($"🎉 Correct! ✅ The word was **{game.Word}**.\n🏆 You win!");
+                        return;
+                    }
+
+                    if (game.Lives <= 0)
+                    {
+                        ActiveGames.TryRemove(guildId.Value, out _);
+                        await command.RespondAsync($"💀 `{input}` is not the word.\nNo lives left. The word was **{game.Word}**. Game over!");
+                        return;
+                    }
+
+                    await command.RespondAsync(
+                        $"❌ `{input}` is not the word.\nWord: `{game.GetMaskedWord()}`\nGuessed: {string.Join(", ", game.GuessedLetters)}\nLives: {game.Lives}"
+                    );
+                    return;
+                }
+
+                char guess = input[0];
+
                 if (game.GuessedLetters.Contains(guess))
                 {
                     await command.RespondAsync($"🔁 The letter `{guess}` was already guessed.\n{game.GetMaskedWord()} | Lives: {game.Lives}", ephemeral: true);
@@ -148,12 +180,29 @@ public class HangmanSlashCommand : ISlashCommands
 
         public bool IsWon()
         {
-            return Word.All(c => GuessedLetters.Contains(c));
+            return Word.Where(char.IsLetter).All(c => GuessedLetters.Contains(c));
         }
 
         public string GetMaskedWord()
         {
-            return string.Join(" ", Word.Select(c => GuessedLetters.Contains(c) ? c : '_'));
+            return string.Join(" ", Word.Select(c => c == ' ' ? ' ' : (GuessedLetters.Contains(c) ? c : '_')));
+        }
+
+        public bool GuessWord(string guess)
+        {
+            static string Normalize(string s) =>
+                new string(s.Where(char.IsLetter).ToArray()).ToLower();
+
+            if (Normalize(guess) == Normalize(Word))
+            {
+                foreach (var ch in Word.Where(char.IsLetter).Distinct())
+                    GuessedLetters.Add(ch);
+
+                return true;
+            }
+
+            Lives--;
+            return false;
         }
     }
 }

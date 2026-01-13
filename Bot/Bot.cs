@@ -195,7 +195,6 @@ public class Bot : IBot
 
         foreach (var module in _slashCommands)
         {
-            Console.WriteLine($"Registering Command: {module}");
             await module.RegisterCommandsAsync(_client);
         }
 
