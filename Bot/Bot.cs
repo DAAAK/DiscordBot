@@ -132,7 +132,14 @@ public class Bot : IBot
             new DeleteStreamerSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
             new ListStreamersSlashCommand(_configuration, _serviceProvider.GetRequiredService<DatabaseService>()),
 
-            new PlaySlashCommand(_configuration, _serviceProvider.GetRequiredService<AudioService>())
+            new PlaySlashCommand(_configuration, _serviceProvider.GetRequiredService<AudioService>()),
+            new PauseSlashCommand(_configuration, _serviceProvider.GetRequiredService<AudioService>()),
+            new ResumeSlashCommand(_configuration, _serviceProvider.GetRequiredService<AudioService>()),
+            new SkipSlashCommand(_configuration, _serviceProvider.GetRequiredService<AudioService>()),
+            new StopSlashCommand(_configuration, _serviceProvider.GetRequiredService<AudioService>()),
+            new QueueSlashCommand(_configuration, _serviceProvider.GetRequiredService<AudioService>()),
+            new NowPlayingSlashCommand(_configuration, _serviceProvider.GetRequiredService<AudioService>()),
+            new LeaveSlashCommand(_configuration, _serviceProvider.GetRequiredService<AudioService>())
         });
 
         await _prefixCommands.AddModulesAsync(Assembly.GetExecutingAssembly(), _serviceProvider);
