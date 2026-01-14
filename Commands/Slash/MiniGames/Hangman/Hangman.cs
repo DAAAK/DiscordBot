@@ -61,99 +61,107 @@ public class HangmanSlashCommand : ISlashCommands
         switch (subCommand.Name)
         {
             case "start":
-                var word = subCommand.Options.First().Value.ToString()?.ToLower();
-                word = Regex.Replace(word?.Trim() ?? "", @"\s+", " ");
-
-
-                if (string.IsNullOrWhiteSpace(word) || !Regex.IsMatch(word, @"^[a-zA-Z ]+$"))
                 {
-                    await command.RespondAsync("❌ The word must contain only letters (a–z).", ephemeral: true);
-                    return;
+                    var word = subCommand.Options.First().Value.ToString()?.ToLower();
+                    word = Regex.Replace(word?.Trim() ?? "", @"\s+", " ");
+
+                    if (string.IsNullOrWhiteSpace(word) || !Regex.IsMatch(word, @"^[a-zA-Z ]+$"))
+                    {
+                        await command.RespondAsync("❌ The word must contain only letters (a–z).", ephemeral: true);
+                        return;
+                    }
+
+                    var channelId = command.Channel.Id;
+
+                    if (ActiveGames.ContainsKey(channelId))
+                    {
+                        await command.RespondAsync("❗ A game is already active in this channel.", ephemeral: true);
+                        return;
+                    }
+
+                    ActiveGames[channelId] = new HangmanGame(word);
+                    await command.RespondAsync($"🎮 A new Hangman game has started!\nWord: {ActiveGames[channelId].GetMaskedWord()}\nLives: {ActiveGames[channelId].Lives}");
+                    break;
                 }
-
-                var channelId = command.Channel.Id;
-
-                if (ActiveGames.ContainsKey(channelId))
-                {
-                    await command.RespondAsync("❗ A game is already active in this channel.", ephemeral: true);
-                    return;
-                }
-
-                ActiveGames[channelId] = new HangmanGame(word);
-                await command.RespondAsync($"🎮 A new Hangman game has started!\nWord: {ActiveGames[channelId].GetMaskedWord()}\nLives: {ActiveGames[channelId].Lives}");
-
-                break;
 
             case "guess":
-                if (!ActiveGames.TryGetValue(guildId.Value, out var game))
                 {
-                    await command.RespondAsync("⚠️ No active Hangman game. Use `/hangman start` to begin.", ephemeral: true);
-                    return;
-                }
+                    var channelId = command.Channel.Id;
 
-                var input = subCommand.Options.First().Value.ToString()?.ToLower()?.Trim();
-
-                if (string.IsNullOrWhiteSpace(input) || !Regex.IsMatch(input, @"^[a-zA-Z]+$"))
-                {
-                    await command.RespondAsync("❌ Please enter only letters (a–z).", ephemeral: true);
-                    return;
-                }
-
-                if (input.Length > 1)
-                {
-                    bool correctWord = game.GuessWord(input);
-
-                    if (correctWord)
+                    if (!ActiveGames.TryGetValue(channelId, out var game))
                     {
-                        ActiveGames.TryRemove(guildId.Value, out _);
-                        await command.RespondAsync($"🎉 Correct! ✅ The word was **{game.Word}**.\n🏆 You win!");
+                        await command.RespondAsync("⚠️ No active Hangman game. Use `/hangman start` to begin.", ephemeral: true);
                         return;
                     }
 
-                    if (game.Lives <= 0)
+                    var input = subCommand.Options.First().Value.ToString()?.ToLower()?.Trim();
+                    input = Regex.Replace(input ?? "", @"\s+", " "); // optional: normalize spaces for guesses too
+
+                    if (string.IsNullOrWhiteSpace(input) || !Regex.IsMatch(input, @"^[a-zA-Z ]+$"))
                     {
-                        ActiveGames.TryRemove(guildId.Value, out _);
-                        await command.RespondAsync($"💀 `{input}` is not the word.\nNo lives left. The word was **{game.Word}**. Game over!");
+                        await command.RespondAsync("❌ Please enter only letters (a–z).", ephemeral: true);
                         return;
                     }
 
-                    await command.RespondAsync(
-                        $"❌ `{input}` is not the word.\nWord: `{game.GetMaskedWord()}`\nGuessed: {string.Join(", ", game.GuessedLetters)}\nLives: {game.Lives}"
-                    );
-                    return;
+                    // FULL WORD GUESS (contains space or multiple letters)
+                    if (input.Length > 1)
+                    {
+                        bool correctWord = game.GuessWord(input);
+
+                        if (correctWord)
+                        {
+                            ActiveGames.TryRemove(channelId, out _);
+                            await command.RespondAsync($"🎉 Correct! ✅ The word was **{game.Word}**.\n🏆 You win!");
+                            return;
+                        }
+
+                        if (game.Lives <= 0)
+                        {
+                            ActiveGames.TryRemove(channelId, out _);
+                            await command.RespondAsync($"💀 `{input}` is not the word.\nNo lives left. The word was **{game.Word}**. Game over!");
+                            return;
+                        }
+
+                        await command.RespondAsync(
+                            $"❌ `{input}` is not the word.\nWord: `{game.GetMaskedWord()}`\nGuessed: {string.Join(", ", game.GuessedLetters)}\nLives: {game.Lives}"
+                        );
+                        return;
+                    }
+
+                    // SINGLE LETTER GUESS
+                    char guess = input[0];
+
+                    if (game.GuessedLetters.Contains(guess))
+                    {
+                        await command.RespondAsync($"🔁 The letter `{guess}` was already guessed.\n{game.GetMaskedWord()} | Lives: {game.Lives}", ephemeral: true);
+                        return;
+                    }
+
+                    bool correct = game.GuessLetter(guess);
+
+                    if (game.IsWon())
+                    {
+                        ActiveGames.TryRemove(channelId, out _);
+                        await command.RespondAsync($"🎉 `{guess}` is correct!\n✅ The word was **{game.Word}**.\n🏆 You win!");
+                    }
+                    else if (game.Lives <= 0)
+                    {
+                        ActiveGames.TryRemove(channelId, out _);
+                        await command.RespondAsync($"💀 No lives left. The word was **{game.Word}**. Game over!");
+                    }
+                    else
+                    {
+                        string response = correct
+                            ? $"✅ Good guess! `{guess}` is in the word."
+                            : $"❌ Oops! `{guess}` is not in the word.";
+
+                        await command.RespondAsync($"{response}\nWord: `{game.GetMaskedWord()}`\nGuessed: {string.Join(", ", game.GuessedLetters)}\nLives: {game.Lives}");
+                    }
+
+                    break;
                 }
-
-                char guess = input[0];
-
-                if (game.GuessedLetters.Contains(guess))
-                {
-                    await command.RespondAsync($"🔁 The letter `{guess}` was already guessed.\n{game.GetMaskedWord()} | Lives: {game.Lives}", ephemeral: true);
-                    return;
-                }
-
-                bool correct = game.GuessLetter(guess);
-
-                if (game.IsWon())
-                {
-                    ActiveGames.TryRemove(guildId.Value, out _);
-                    await command.RespondAsync($"🎉 `{guess}` is correct!\n✅ The word was **{game.Word}**.\n🏆 You win!");
-                }
-                else if (game.Lives <= 0)
-                {
-                    ActiveGames.TryRemove(guildId.Value, out _);
-                    await command.RespondAsync($"💀 No lives left. The word was **{game.Word}**. Game over!");
-                }
-                else
-                {
-                    string response = correct
-                        ? $"✅ Good guess! `{guess}` is in the word."
-                        : $"❌ Oops! `{guess}` is not in the word.";
-
-                    await command.RespondAsync($"{response}\nWord: `{game.GetMaskedWord()}`\nGuessed: {string.Join(", ", game.GuessedLetters)}\nLives: {game.Lives}");
-                }
-
-                break;
         }
+
     }
 
     private class HangmanGame
