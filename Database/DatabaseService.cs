@@ -1,10 +1,5 @@
-﻿using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.Extensions.Configuration;
+using Npgsql;
 
 namespace DiscordBot.Database
 {
@@ -14,17 +9,19 @@ namespace DiscordBot.Database
 
         public DatabaseService(IConfiguration configuration)
         {
-            _connectionString = configuration.GetConnectionString("Default");
+            _connectionString = configuration["DATABASE_URL"] ?? throw new ArgumentNullException(nameof(configuration), "DATABASE_URL configuration is missing.");
         }
 
         public async Task<List<(string Name, int Chapter, string Status)>> GetAllWebtoonsAsync()
         {
             var webtoons = new List<(string, int, string)>();
 
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("SELECT Name, Chapter, Status FROM Webtoons", connection);
+            await using var connection = new NpgsqlConnection(_connectionString);
+            await using var command = new NpgsqlCommand(
+                "SELECT Name, Chapter, Status FROM Webtoons", connection);
+
             await connection.OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
+            await using var reader = await command.ExecuteReaderAsync();
 
             while (await reader.ReadAsync())
             {
@@ -36,51 +33,70 @@ namespace DiscordBot.Database
 
         public async Task<bool> AddWebtoonAsync(string name, int chapter, string status)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("INSERT INTO Webtoons (Name, Chapter, Status) VALUES (@name, @chapter, @status)", connection);
+            await using var connection = new NpgsqlConnection(_connectionString);
+            await using var command = new NpgsqlCommand(
+                "INSERT INTO Webtoons (Name, Chapter, Status) VALUES (@name, @chapter, @status)",
+                connection);
+
             command.Parameters.AddWithValue("@name", name);
             command.Parameters.AddWithValue("@chapter", chapter);
             command.Parameters.AddWithValue("@status", status);
+
             await connection.OpenAsync();
-            return await command.ExecuteNonQueryAsync()  > 0;
+            return await command.ExecuteNonQueryAsync() > 0;
         }
 
         public async Task<bool> DeleteWebtoonAsync(string name)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("DELETE FROM Webtoons WHERE Name = @name", connection);
+            await using var connection = new NpgsqlConnection(_connectionString);
+            await using var command = new NpgsqlCommand(
+                "DELETE FROM Webtoons WHERE Name = @name",
+                connection);
+
             command.Parameters.AddWithValue("@name", name);
+
             await connection.OpenAsync();
-            return await command.ExecuteNonQueryAsync()  > 0;
+            return await command.ExecuteNonQueryAsync() > 0;
         }
 
         public async Task<bool> UpdateWebtoonAsync(string name, int chapter, string status)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("UPDATE Webtoons SET Chapter = @chapter, Status = @status WHERE Name = @name", connection);
+            await using var connection = new NpgsqlConnection(_connectionString);
+            await using var command = new NpgsqlCommand(
+                "UPDATE Webtoons SET Chapter = @chapter, Status = @status WHERE Name = @name",
+                connection);
+
             command.Parameters.AddWithValue("@name", name);
             command.Parameters.AddWithValue("@chapter", chapter);
             command.Parameters.AddWithValue("@status", status);
-            await connection.OpenAsync();
 
+            await connection.OpenAsync();
             return await command.ExecuteNonQueryAsync() > 0;
         }
 
         public async Task AddGifAsync(string name, string url)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("INSERT INTO Gifs (Name, Url) VALUES (@Name, @Url)", connection);
+            await using var connection = new NpgsqlConnection(_connectionString);
+            await using var command = new NpgsqlCommand(
+                "INSERT INTO Gifs (Name, Url) VALUES (@Name, @Url)",
+                connection);
+
             command.Parameters.AddWithValue("@Name", name);
             command.Parameters.AddWithValue("@Url", url);
+
             await connection.OpenAsync();
             await command.ExecuteNonQueryAsync();
         }
 
         public async Task DeleteGifAsync(string name)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("DELETE FROM Gifs WHERE Name = @Name", connection);
+            await using var connection = new NpgsqlConnection(_connectionString);
+            await using var command = new NpgsqlCommand(
+                "DELETE FROM Gifs WHERE Name = @Name",
+                connection);
+
             command.Parameters.AddWithValue("@Name", name);
+
             await connection.OpenAsync();
             await command.ExecuteNonQueryAsync();
         }
@@ -88,11 +104,15 @@ namespace DiscordBot.Database
         public async Task<List<(string Name, string Url)>> GetGifsAsync()
         {
             var gifs = new List<(string, string)>();
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("SELECT Name, Url FROM Gifs", connection);
+
+            await using var connection = new NpgsqlConnection(_connectionString);
+            await using var command = new NpgsqlCommand(
+                "SELECT Name, Url FROM Gifs",
+                connection);
+
             await connection.OpenAsync();
 
-            using var reader = await command.ExecuteReaderAsync();
+            await using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
                 gifs.Add((reader.GetString(0), reader.GetString(1)));
@@ -103,41 +123,47 @@ namespace DiscordBot.Database
 
         public async Task UpdateGifAsync(string name, string newUrl)
         {
-            using var connection = new SqlConnection(_connectionString);
-            using var command = new SqlCommand("UPDATE Gifs SET Url = @Url WHERE Name = @Name", connection);
+            await using var connection = new NpgsqlConnection(_connectionString);
+            await using var command = new NpgsqlCommand(
+                "UPDATE Gifs SET Url = @Url WHERE Name = @Name",
+                connection);
+
             command.Parameters.AddWithValue("@Name", name);
             command.Parameters.AddWithValue("@Url", newUrl);
+
             await connection.OpenAsync();
             await command.ExecuteNonQueryAsync();
         }
 
         public async Task<int> GetUserXPAsync(ulong userId)
         {
-            using var conn = new SqlConnection(_connectionString);
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await using var cmd = new NpgsqlCommand(
+                "SELECT XP FROM UserXP WHERE UserId = @UserId",
+                conn);
 
-            var cmd = new SqlCommand("SELECT XP FROM UserXP WHERE UserId = @UserId", conn);
-
-            cmd.Parameters.Add("@UserId", System.Data.SqlDbType.BigInt).Value = unchecked((long)userId);
+            cmd.Parameters.AddWithValue("@UserId", (long)userId);
 
             await conn.OpenAsync();
 
             var result = await cmd.ExecuteScalarAsync();
-
             return result != null ? Convert.ToInt32(result) : 0;
-
         }
 
         public async Task<(bool leveledUp, int newLevel, int newXP)> AddXPAsync(ulong userId, string username, int xpToAdd = 1)
         {
             try
             {
-                using var conn = new SqlConnection(_connectionString);
-
-                var checkCmd = new SqlCommand("SELECT XP, Level FROM UserXP WHERE UserId = @UserId", conn);
-                checkCmd.Parameters.AddWithValue("@UserId", unchecked((long)userId));
-
+                await using var conn = new NpgsqlConnection(_connectionString);
                 await conn.OpenAsync();
-                var reader = await checkCmd.ExecuteReaderAsync();
+
+                await using var checkCmd = new NpgsqlCommand(
+                    "SELECT XP, Level FROM UserXP WHERE UserId = @UserId",
+                    conn);
+
+                checkCmd.Parameters.AddWithValue("@UserId", (long)userId);
+
+                await using var reader = await checkCmd.ExecuteReaderAsync();
 
                 int currentXP = 0;
                 int currentLevel = 0;
@@ -154,16 +180,17 @@ namespace DiscordBot.Database
                 int newLevel = (int)Math.Floor(Math.Sqrt(newXP / 10.0));
                 bool leveledUp = newLevel > currentLevel;
 
-                var cmd = new SqlCommand(@"
-            MERGE UserXP AS target
-            USING (SELECT @UserId AS UserId) AS source
-            ON target.UserId = source.UserId
-            WHEN MATCHED THEN
-                UPDATE SET XP = @XP, UserName = @UserName, Level = @Level
-            WHEN NOT MATCHED THEN
-                INSERT (UserId, UserName, XP, Level) VALUES (@UserId, @UserName, @XP, @Level);", conn);
+                await using var cmd = new NpgsqlCommand(@"
+                    INSERT INTO UserXP (UserId, UserName, XP, Level)
+                    VALUES (@UserId, @UserName, @XP, @Level)
+                    ON CONFLICT (UserId)
+                    DO UPDATE SET
+                        XP = EXCLUDED.XP,
+                        UserName = EXCLUDED.UserName,
+                        Level = EXCLUDED.Level;",
+                    conn);
 
-                cmd.Parameters.AddWithValue("@UserId", unchecked((long)userId));
+                cmd.Parameters.AddWithValue("@UserId", (long)userId);
                 cmd.Parameters.AddWithValue("@UserName", username);
                 cmd.Parameters.AddWithValue("@XP", newXP);
                 cmd.Parameters.AddWithValue("@Level", newLevel);
@@ -182,8 +209,9 @@ namespace DiscordBot.Database
         public async Task<List<(ulong UserId, string Name, int Level, int XP)>> GetLeaderboardAsync()
         {
             const string query = "SELECT UserId, UserName, Level, XP FROM UserXP ORDER BY Level DESC, XP DESC";
-            using var conn = new SqlConnection(_connectionString);
-            using var cmd = new SqlCommand(query, conn);
+
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await using var cmd = new NpgsqlCommand(query, conn);
 
             var list = new List<(ulong, string, int, int)>();
 
@@ -191,7 +219,7 @@ namespace DiscordBot.Database
             {
                 await conn.OpenAsync();
 
-                using var reader = await cmd.ExecuteReaderAsync();
+                await using var reader = await cmd.ExecuteReaderAsync();
 
                 while (await reader.ReadAsync())
                 {
@@ -211,13 +239,14 @@ namespace DiscordBot.Database
             return list;
         }
 
-
-
         public async Task<int> GetUserLevelAsync(ulong userId)
         {
-            using var conn = new SqlConnection(_connectionString);
-            var cmd = new SqlCommand("SELECT Level FROM UserXP WHERE UserId = @UserId", conn);
-            cmd.Parameters.Add("@UserId", System.Data.SqlDbType.BigInt).Value = unchecked((long)userId);
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await using var cmd = new NpgsqlCommand(
+                "SELECT Level FROM UserXP WHERE UserId = @UserId",
+                conn);
+
+            cmd.Parameters.AddWithValue("@UserId", (long)userId);
 
             await conn.OpenAsync();
             var result = await cmd.ExecuteScalarAsync();
@@ -236,14 +265,15 @@ namespace DiscordBot.Database
         public async Task<int> GetUserRankAsync(ulong userId)
         {
             const string query = @"
-        SELECT COUNT(*) + 1
-        FROM UserXP
-        WHERE (Level > (SELECT Level FROM UserXP WHERE UserId = @userId))
-           OR (Level = (SELECT Level FROM UserXP WHERE UserId = @userId)
-               AND XP > (SELECT XP FROM UserXP WHERE UserId = @userId))";
+                SELECT COUNT(*) + 1
+                FROM UserXP
+                WHERE (Level > (SELECT Level FROM UserXP WHERE UserId = @userId))
+                   OR (Level = (SELECT Level FROM UserXP WHERE UserId = @userId)
+                       AND XP > (SELECT XP FROM UserXP WHERE UserId = @userId))";
 
-            using var conn = new SqlConnection(_connectionString);
-            using var cmd = new SqlCommand(query, conn);
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await using var cmd = new NpgsqlCommand(query, conn);
+
             cmd.Parameters.AddWithValue("@userId", (long)userId);
 
             await conn.OpenAsync();
@@ -251,12 +281,13 @@ namespace DiscordBot.Database
             return Convert.ToInt32(result);
         }
 
-
         public async Task<bool> AddCommandAsync(string name, string description)
         {
             const string query = "INSERT INTO Commands (Name, Description) VALUES (@Name, @Description)";
-            using var conn = new SqlConnection(_connectionString);
-            using var cmd = new SqlCommand(query, conn);
+
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await using var cmd = new NpgsqlCommand(query, conn);
+
             cmd.Parameters.AddWithValue("@Name", name);
             cmd.Parameters.AddWithValue("@Description", description);
 
@@ -267,8 +298,10 @@ namespace DiscordBot.Database
         public async Task<bool> UpdateCommandAsync(string name, string description)
         {
             const string query = "UPDATE Commands SET Description = @Description WHERE Name = @Name";
-            using var conn = new SqlConnection(_connectionString);
-            using var cmd = new SqlCommand(query, conn);
+
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await using var cmd = new NpgsqlCommand(query, conn);
+
             cmd.Parameters.AddWithValue("@Name", name);
             cmd.Parameters.AddWithValue("@Description", description);
 
@@ -279,8 +312,10 @@ namespace DiscordBot.Database
         public async Task<bool> DeleteCommandAsync(string name)
         {
             const string query = "DELETE FROM Commands WHERE Name = @Name";
-            using var conn = new SqlConnection(_connectionString);
-            using var cmd = new SqlCommand(query, conn);
+
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await using var cmd = new NpgsqlCommand(query, conn);
+
             cmd.Parameters.AddWithValue("@Name", name);
 
             await conn.OpenAsync();
@@ -290,12 +325,15 @@ namespace DiscordBot.Database
         public async Task<List<(string Name, string Description)>> GetAllCommandsAsync()
         {
             const string query = "SELECT Name, Description FROM Commands ORDER BY Name";
-            using var conn = new SqlConnection(_connectionString);
-            using var cmd = new SqlCommand(query, conn);
+
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await using var cmd = new NpgsqlCommand(query, conn);
+
             await conn.OpenAsync();
 
             var list = new List<(string, string)>();
-            using var reader = await cmd.ExecuteReaderAsync();
+
+            await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
                 var name = reader.GetString(0);
@@ -309,12 +347,15 @@ namespace DiscordBot.Database
         public async Task<List<(ulong DiscordUserId, string TwitchUsername, int LastLiveStatus)>> GetAllStreamersAsync()
         {
             const string query = "SELECT DiscordUserId, TwitchUsername, LastLiveStatus FROM Streamers";
-            using var conn = new SqlConnection(_connectionString);
-            using var cmd = new SqlCommand(query, conn);
+
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await using var cmd = new NpgsqlCommand(query, conn);
+
             await conn.OpenAsync();
 
             var list = new List<(ulong, string, int)>();
-            using var reader = await cmd.ExecuteReaderAsync();
+
+            await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
                 var id = (ulong)reader.GetInt64(0);
@@ -322,16 +363,20 @@ namespace DiscordBot.Database
                 var status = reader.GetInt32(2);
                 list.Add((id, twitch, status));
             }
+
             return list;
         }
 
         public async Task UpdateLiveStatus(ulong discordUserId, bool isLive)
         {
             const string query = "UPDATE Streamers SET LastLiveStatus = @status WHERE DiscordUserId = @id";
-            using var conn = new SqlConnection(_connectionString);
-            using var cmd = new SqlCommand(query, conn);
+
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await using var cmd = new NpgsqlCommand(query, conn);
+
             cmd.Parameters.AddWithValue("@id", (long)discordUserId);
             cmd.Parameters.AddWithValue("@status", isLive ? 1 : 0);
+
             await conn.OpenAsync();
             await cmd.ExecuteNonQueryAsync();
         }
@@ -339,14 +384,13 @@ namespace DiscordBot.Database
         public async Task<bool> AddStreamerAsync(ulong discordId, string twitchName)
         {
             const string query = @"
-        IF NOT EXISTS (SELECT 1 FROM Streamers WHERE DiscordUserId = @id)
-        BEGIN
-            INSERT INTO Streamers (DiscordUserId, TwitchUsername, LastLiveStatus)
-            VALUES (@id, @twitch, 0)
-        END";
+                INSERT INTO Streamers (DiscordUserId, TwitchUsername, LastLiveStatus)
+                VALUES (@id, @twitch, 0)
+                ON CONFLICT (DiscordUserId) DO NOTHING";
 
-            using var conn = new SqlConnection(_connectionString);
-            using var cmd = new SqlCommand(query, conn);
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await using var cmd = new NpgsqlCommand(query, conn);
+
             cmd.Parameters.AddWithValue("@id", (long)discordId);
             cmd.Parameters.AddWithValue("@twitch", twitchName);
 
@@ -359,8 +403,9 @@ namespace DiscordBot.Database
         {
             const string query = "DELETE FROM Streamers WHERE DiscordUserId = @id";
 
-            using var conn = new SqlConnection(_connectionString);
-            using var cmd = new SqlCommand(query, conn);
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await using var cmd = new NpgsqlCommand(query, conn);
+
             cmd.Parameters.AddWithValue("@id", (long)discordId);
 
             await conn.OpenAsync();
@@ -372,8 +417,9 @@ namespace DiscordBot.Database
         {
             const string query = "UPDATE Streamers SET TwitchUsername = @twitch WHERE DiscordUserId = @id";
 
-            using var conn = new SqlConnection(_connectionString);
-            using var cmd = new SqlCommand(query, conn);
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await using var cmd = new NpgsqlCommand(query, conn);
+
             cmd.Parameters.AddWithValue("@id", (long)discordId);
             cmd.Parameters.AddWithValue("@twitch", newTwitchName);
 

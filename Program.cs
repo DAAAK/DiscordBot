@@ -1,7 +1,7 @@
 ﻿using Discord.WebSocket;
 using DiscordBot.Audio;
 using DiscordBot.Database;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
@@ -14,8 +14,10 @@ public class Program
     private static async Task MainAsync(string[] args)
     {
         var configuration = new ConfigurationBuilder()
-            .AddUserSecrets(Assembly.GetExecutingAssembly())
-            .Build();
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+    .AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true)
+    .AddEnvironmentVariables()
+    .Build();
 
         var serviceProvider = new ServiceCollection()
             .AddSingleton<IConfiguration>(configuration)
@@ -26,10 +28,12 @@ public class Program
             .AddSingleton<DatabaseService>()
             .BuildServiceProvider();
 
+        Console.WriteLine(configuration["DiscordToken"]);
+
         var db = serviceProvider.GetRequiredService<DatabaseService>();
         try
         {
-            using var testConn = new SqlConnection(configuration.GetConnectionString("Default"));
+            using var testConn = new NpgsqlConnection(configuration["DATABASE_URL"]);
             await testConn.OpenAsync();
             Console.WriteLine("Connected to SQL Server database.");
         }
