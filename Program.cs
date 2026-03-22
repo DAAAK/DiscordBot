@@ -32,39 +32,21 @@ public class Program
             .BuildServiceProvider();
 
         var db = serviceProvider.GetRequiredService<DatabaseService>();
-        try
-        {
-            var startupConnectionString =
-     configuration["DATABASE_URL"]
-     ?? configuration.GetConnectionString("Default");
+        var startupConnectionString =
+    configuration["DATABASE_URL"]
+    ?? configuration.GetConnectionString("Default");
 
-            if (string.IsNullOrWhiteSpace(startupConnectionString))
-                throw new InvalidOperationException("No database connection string found.");
+        if (string.IsNullOrWhiteSpace(startupConnectionString))
+            throw new InvalidOperationException("No database connection string found.");
 
-            using var testConn = new NpgsqlConnection(startupConnectionString);
-            await testConn.OpenAsync();
-            Console.WriteLine("Connected to PostgreSQL database.");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Database connection failed: {ex.Message}");
-        }
+        using var testConn = new NpgsqlConnection(startupConnectionString);
+        await testConn.OpenAsync();
+        Console.WriteLine("Connected to PostgreSQL database.");
 
-        try
-        {
-            IBot bot = serviceProvider.GetRequiredService<IBot>();
+        IBot bot = serviceProvider.GetRequiredService<IBot>();
+        await bot.StartAsync(serviceProvider);
 
-
-            await bot.StartAsync(serviceProvider);
-
-            Console.WriteLine("Connected to Discord");
-
-            await Task.Delay(Timeout.Infinite);
-        }
-        catch (Exception exception)
-        {
-            Console.WriteLine(exception.Message);
-            Environment.Exit(-1);
-        }
+        Console.WriteLine("Connected to Discord");
+        await Task.Delay(Timeout.Infinite);
     }
 }
