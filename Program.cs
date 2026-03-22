@@ -19,6 +19,9 @@ public class Program
     .AddEnvironmentVariables()
     .Build();
 
+        Console.WriteLine($"DATABASE_URL exists: {!string.IsNullOrWhiteSpace(configuration["DATABASE_URL"])}");
+        Console.WriteLine($"Default connection exists: {!string.IsNullOrWhiteSpace(configuration.GetConnectionString("Default"))}");
+
         var serviceProvider = new ServiceCollection()
             .AddSingleton<IConfiguration>(configuration)
             .AddScoped<IBot, Bot>()
@@ -28,14 +31,19 @@ public class Program
             .AddSingleton<DatabaseService>()
             .BuildServiceProvider();
 
-        Console.WriteLine(configuration["DiscordToken"]);
-
         var db = serviceProvider.GetRequiredService<DatabaseService>();
         try
         {
-            using var testConn = new NpgsqlConnection(configuration["DATABASE_URL"]);
+            var startupConnectionString =
+     configuration["DATABASE_URL"]
+     ?? configuration.GetConnectionString("Default");
+
+            if (string.IsNullOrWhiteSpace(startupConnectionString))
+                throw new InvalidOperationException("No database connection string found.");
+
+            using var testConn = new NpgsqlConnection(startupConnectionString);
             await testConn.OpenAsync();
-            Console.WriteLine("Connected to SQL Server database.");
+            Console.WriteLine("Connected to PostgreSQL database.");
         }
         catch (Exception ex)
         {
@@ -51,18 +59,7 @@ public class Program
 
             Console.WriteLine("Connected to Discord");
 
-            do
-            {
-                var keyInfo = Console.ReadKey();
-
-                if (keyInfo.Key == ConsoleKey.Q)
-                {
-                    Console.WriteLine("\nShutting down!");
-
-                    await bot.StopAsync();
-                    return;
-                }
-            } while (true);
+            await Task.Delay(Timeout.Infinite);
         }
         catch (Exception exception)
         {
