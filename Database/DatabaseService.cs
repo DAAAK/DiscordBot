@@ -9,11 +9,7 @@ namespace DiscordBot.Database
 
         public DatabaseService(IConfiguration configuration)
         {
-            _connectionString =
-        configuration["DATABASE_URL"]
-        ?? configuration.GetConnectionString("Default")
-        ?? throw new InvalidOperationException(
-            "Missing database connection string. Expected DATABASE_URL or ConnectionStrings:Default.");
+            _connectionString = Program.BuildPostgresConnectionString(configuration);
         }
 
         public async Task<List<(string Name, int Chapter, string Status)>> GetAllWebtoonsAsync()

@@ -1,9 +1,9 @@
 ﻿using Discord.WebSocket;
 using DiscordBot.Audio;
 using DiscordBot.Database;
-using Npgsql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using System.Reflection;
 
 public class Program
@@ -14,10 +14,10 @@ public class Program
     private static async Task MainAsync(string[] args)
     {
         var configuration = new ConfigurationBuilder()
-    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
-    .AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true)
-    .AddEnvironmentVariables()
-    .Build();
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+            .AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true)
+            .AddEnvironmentVariables()
+            .Build();
 
         Console.WriteLine($"DATABASE_URL exists: {!string.IsNullOrWhiteSpace(configuration["DATABASE_URL"])}");
         Console.WriteLine($"Default connection exists: {!string.IsNullOrWhiteSpace(configuration.GetConnectionString("Default"))}");
@@ -31,22 +31,65 @@ public class Program
             .AddSingleton<DatabaseService>()
             .BuildServiceProvider();
 
-        var db = serviceProvider.GetRequiredService<DatabaseService>();
-        var startupConnectionString =
-    configuration["DATABASE_URL"]
-    ?? configuration.GetConnectionString("Default");
+        try
+        {
+            var startupConnectionString = BuildPostgresConnectionString(configuration);
 
-        if (string.IsNullOrWhiteSpace(startupConnectionString))
-            throw new InvalidOperationException("No database connection string found.");
+            using var testConn = new NpgsqlConnection(startupConnectionString);
+            await testConn.OpenAsync();
+            Console.WriteLine("Connected to PostgreSQL database.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Database connection failed: {ex.Message}");
+            Environment.Exit(-1);
+            return;
+        }
 
-        using var testConn = new NpgsqlConnection(startupConnectionString);
-        await testConn.OpenAsync();
-        Console.WriteLine("Connected to PostgreSQL database.");
+        try
+        {
+            IBot bot = serviceProvider.GetRequiredService<IBot>();
 
-        IBot bot = serviceProvider.GetRequiredService<IBot>();
-        await bot.StartAsync(serviceProvider);
+            await bot.StartAsync(serviceProvider);
 
-        Console.WriteLine("Connected to Discord");
-        await Task.Delay(Timeout.Infinite);
+            Console.WriteLine("Connected to Discord");
+
+            await Task.Delay(Timeout.Infinite);
+        }
+        catch (Exception exception)
+        {
+            Console.WriteLine(exception.Message);
+            Environment.Exit(-1);
+        }
+    }
+
+    public static string BuildPostgresConnectionString(IConfiguration configuration)
+    {
+        var databaseUrl = configuration["DATABASE_URL"];
+
+        if (!string.IsNullOrWhiteSpace(databaseUrl))
+        {
+            var uri = new Uri(databaseUrl);
+            var userInfo = uri.UserInfo.Split(':', 2);
+
+            var builder = new NpgsqlConnectionStringBuilder
+            {
+                Host = uri.Host,
+                Port = uri.Port,
+                Username = Uri.UnescapeDataString(userInfo[0]),
+                Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "",
+                Database = uri.AbsolutePath.Trim('/'),
+                SslMode = SslMode.Require,
+                TrustServerCertificate = true
+            };
+
+            return builder.ConnectionString;
+        }
+
+        var fallback = configuration.GetConnectionString("Default");
+        if (!string.IsNullOrWhiteSpace(fallback))
+            return fallback;
+
+        throw new InvalidOperationException("No database connection string found.");
     }
 }
